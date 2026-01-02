@@ -1,14 +1,16 @@
 export type BubbaLevels = number[];
 
-// Estado Global
 const state = reactive({
-  levels: Array(28).fill(0) as BubbaLevels,         
-  mindfulOffsets: Array(28).fill(0) as BubbaLevels, 
+  levels: Array(28).fill(0) as BubbaLevels,
+  mindfulOffsets: Array(28).fill(0) as BubbaLevels,
   charismaLvs: [0, 0, 0, 0, 0, 0],
-  emulsifiedIndex: null as number | null, 
+  emulsifiedIndex: null as number | null,
   selectedGifts: [-1, -1],
+  diceValues: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as number[],
+  smokerValues: [0, 0, 0, 0, 0] as number[],
   currentMeat: 0,
   activePats: 0,
+  patsPerHour: 0,
   poppyFishPower: 0,
   coinsFound: 0,
 });
@@ -18,35 +20,59 @@ export const useBubba = () => {
   const MULTI = [1, 1, 0.6, 1, 1, 1.3, 1, 1, 1.6, 0.4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
   const MINDFUL_RESTRICTED = [3, 8, 9, 10, 12, 14, 15, 16];
 
+  const diceStats = computed(() => {
+    const isSooshi = (state.levels[8] ?? 0) >= 5;
+    const count = 1 + (isSooshi ? 1 : 0) + (state.levels[14] ?? 0);
+    const sides = 6 + (isSooshi ? 5 : 0) + (state.levels[16] ?? 0);
+    return { count, sides };
+  });
+
+  const diceMulti = computed(() => {
+    const { count } = diceStats.value;
+    let product = 1;
+    let hasActiveDice = false;
+
+    for (let i = 0; i < count; i++) {
+      const val = state.diceValues[i] || 0;
+      if (val > 0) {
+        const scaledVal = val <= 6 ? val : 6 + (val - 6) * 0.4;
+        product *= scaledVal;
+        hasActiveDice = true;
+      }
+    }
+
+    if (!hasActiveDice) return 1;
+    return 1 + (product / 100);
+  });
+
   const charismaBonuses = computed(() => {
     const lvs = state.charismaLvs;
-    const superChartLv = state.levels[13];
+    const superChartLv = state.levels[13] ?? 0;
     const superChartBonus = 1 + (superChartLv * 0.01);
-    const isMF6 = state.levels[8] >= 6;
+    const isMF6 = (state.levels[8] ?? 0) >= 6;
     const getEmulsifyFact = (idx: number) => (isMF6 && state.emulsifiedIndex === idx) ? 3 : 1;
-
     return {
-      hustle: lvs[0] * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
-      rizzDisc: 1 - 1 / (1 + 0.02 * lvs[1] * superChartBonus * getEmulsifyFact(1)),
-      joy: (1 + (lvs[2] * 0.05 * 1.2)) * getEmulsifyFact(2),
-      mindful: 0.1 * lvs[4] * getEmulsifyFact(4)
+      hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
+      rizzDisc: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
+      joy: (1 + ((lvs[2] ?? 0) * 0.05 * 1.2)) * getEmulsifyFact(2),
+      mindful: 0.1 * (lvs[4] ?? 0) * getEmulsifyFact(4)
     };
   });
 
   const getCostReduction = (levels: BubbaLevels) => {
     const rizzDisc = charismaBonuses.value.rizzDisc;
-    const bargainDisc = 1 - 1 / (1 + 0.01 * levels[4]);
-    const costSaverDisc = 1 - 1 / (1 + 0.02 * levels[18]);
-    const permaSaleDisc = 1 - 1 / (1 + 0.04 * levels[26]);
+    const bargainDisc = 1 - 1 / (1 + 0.01 * (levels[4] ?? 0));
+    const costSaverDisc = 1 - 1 / (1 + 0.02 * (levels[18] ?? 0));
+    const permaSaleDisc = 1 - 1 / (1 + 0.04 * (levels[26] ?? 0));
     return (1 - rizzDisc) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc);
   };
 
   const getUpgradeCost = (index: number, lv: number, offset: number, prodLevels: BubbaLevels) => {
     const reduction = getCostReduction(prodLevels);
-    const costLv = Math.max(0, lv - offset); 
+    const costLv = Math.max(0, lv - offset);
     const term1 = Math.pow(index + 1, 2) * costLv;
-    const term2 = Math.pow(2.4 + index / 3.65, index) * Math.pow(FACTORS[index], costLv);
-    return Math.round(reduction * (term1 + term2) * MULTI[index]);
+    const term2 = Math.pow(2.4 + index / 3.65, index) * Math.pow(FACTORS[index] ?? 1, costLv);
+    return Math.round(reduction * (term1 + term2) * (MULTI[index] ?? 1));
   };
 
   const getHMultFromHappiness = (h: number) => {
@@ -55,41 +81,43 @@ export const useBubba = () => {
   };
 
   const getMeatGen = (levels: BubbaLevels, hMult: number) => {
-    const baseSlices = (levels[0] * 1) + (levels[7] * 6) + (levels[23] * 50);
+    const baseSlices = ((levels[0] ?? 0) * 1) + ((levels[7] ?? 0) * 6) + ((levels[23] ?? 0) * 50);
     if (baseSlices === 0) return 0;
-    const D84 = (levels[2] * 2) + (8 * levels[11]) + (levels[19] * 25) + 100;
+    const D84 = ((levels[2] ?? 0) * 2) + (8 * (levels[11] ?? 0)) + ((levels[19] ?? 0) * 25) + 100;
     const totalLv = levels.reduce((a, b) => a + b, 0);
-    const mf1Mult = levels[8] >= 1 ? 1 + (totalLv / 100) : 1;
-    const poppyMult = 1 + (levels[24] * 0.05 * state.poppyFishPower);
-    const coinsMult = 1 + (state.coinsFound * (levels[21] / 100));
-    const beegSliceMult = state.selectedGifts.includes(0) ? (2 + (levels[17] / 100)) : 1;
-    return baseSlices * 60 * (D84 / 100) * mf1Mult * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
+    const mf1Mult = (levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
+    const poppyMult = 1 + ((levels[24] ?? 0) * 0.05 * state.poppyFishPower);
+    const coinsMult = 1 + (state.coinsFound * ((levels[21] ?? 0) / 100));
+    const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((levels[17] ?? 0) / 100)) : 1;
+
+    return baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
   };
 
   const upgradeAnalysis = computed(() => {
     const joyMulti = charismaBonuses.value.joy;
     const giftHappyMult = state.selectedGifts.includes(1) ? 1.5 : 1;
-    const currentH = state.activePats * state.levels[1] * joyMulti * giftHappyMult;
-    const currentHMult = getHMultFromHappiness(currentH);
-    
+    const currentHMult = getHMultFromHappiness(state.activePats * state.levels[1] * joyMulti * giftHappyMult);
+
     const getAvgHMult = (lv: number) => {
-        const hPerPat = lv * joyMulti * giftHappyMult;
-        if (hPerPat <= 0) return 1;
-        const peakBoost = getHMultFromHappiness(hPerPat) - 1;
-        const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.2;
-        return 1 + (10 * effectiveSeconds / 3600);
+      const hPerPat = lv * joyMulti * giftHappyMult;
+      if (hPerPat <= 0) return 1;
+      const peakBoost = getHMultFromHappiness(hPerPat) - 1;
+      const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.2;
+      return 1 + (state.patsPerHour * effectiveSeconds / 3600);
     };
 
     const targetIdx = 8;
-    const targetCost = getUpgradeCost(targetIdx, state.levels[targetIdx], state.mindfulOffsets[targetIdx], state.levels);
+    const targetCost = getUpgradeCost(targetIdx, state.levels[targetIdx] ?? 0, state.mindfulOffsets[targetIdx] ?? 0, state.levels);
     const genCurrent = getMeatGen(state.levels, currentHMult);
     const currentTimeToTarget = genCurrent > 0 ? (targetCost - state.currentMeat) / (genCurrent / 60) : Infinity;
 
     return state.levels.map((_, i) => {
-      const cost = getUpgradeCost(i, state.levels[i], state.mindfulOffsets[i], state.levels);
-      const nextLevels = [...state.levels]; nextLevels[i]++;
-      const nGen = (i === 1) ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1])) : getMeatGen(nextLevels, currentHMult);
-      const nTarget = getUpgradeCost(targetIdx, nextLevels[targetIdx], state.mindfulOffsets[targetIdx], nextLevels);
+      const cost = getUpgradeCost(i, state.levels[i] ?? 0, state.mindfulOffsets[i] ?? 0, state.levels);
+      const nextLevels = [...state.levels];
+      const currentNextLv = nextLevels[i];
+      if (currentNextLv !== undefined) nextLevels[i] = currentNextLv + 1;
+      const nGen = (i === 1) ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1] ?? 0)) : getMeatGen(nextLevels, currentHMult);
+      const nTarget = getUpgradeCost(targetIdx, state.levels[targetIdx] ?? 0, state.mindfulOffsets[targetIdx] ?? 0, nextLevels);
       const nTimeToTarget = nGen > 0 ? (nTarget - (state.currentMeat - cost)) / (nGen / 60) : Infinity;
       let timeSaved = currentTimeToTarget - nTimeToTarget;
       if (i === 5) timeSaved *= 0.00001;
@@ -97,5 +125,5 @@ export const useBubba = () => {
     });
   });
 
-  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * state.levels[1] * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8], state.mindfulOffsets[8], state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 3 && i !== 8 && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED };
+  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti };
 };

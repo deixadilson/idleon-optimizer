@@ -3,25 +3,45 @@ export const useFormatters = () => {
     const absx = Math.abs(num);
     if (absx === 0) return "0";
 
-    if (absx < 1000000) {
-      return Math.floor(num).toLocaleString('en-US');
+    const digits = Math.floor(Math.log10(absx) + 1e-10) + 1;
+
+    if (digits <= 4) {
+      return num.toLocaleString('en-US');
     }
 
-    if (absx < 10000000000) {
-      return Math.round(num / 1000000) + "M";
-    } else if (absx < 10000000000000) {
-      return Math.round(num / 1000000000) + "B";
-    } else if (absx < 10000000000000000) {
-      return Math.round(num / 1000000000000) + "T";
-    } else if (absx < 10000000000000000000) {
-      return Math.round(num / 1000000000000000) + "Q";
-    } else if (absx < 1e22) {
-      return Math.round(num / 1e18) + "QQ";
-    } else if (absx < 1e25) {
-      return Math.round(num / 1e21) + "QQQ";
-    } else {
-      return num.toExponential(2).toUpperCase().replace("+", "");
+    const suffixes = ["", "K", "M", "B", "T", "Q", "QQ", "QQQ"];
+
+    if (digits === 5) {
+      const val = Math.ceil(num / 100) / 10;
+      return val.toString() + "K";
     }
+    if (digits === 6) return Math.ceil(num / 1e3) + "K";
+
+    if (digits === 7) {
+      const val = Math.ceil(num / 10000) / 100;
+      return val.toString() + "M";
+    }
+    if (digits === 8) {
+      const val = Math.ceil(num / 100000) / 10;
+      return val.toString() + "M";
+    }
+    if (digits === 9 || digits === 10) return Math.ceil(num / 1e6) + "M";
+
+    if (digits >= 11) {
+      const sIdx = Math.floor((digits - 11) / 3) + 3;
+      if (sIdx >= suffixes.length) {
+        return num.toExponential(2).toUpperCase().replace("+", "");
+      }
+      const d = Math.pow(10, sIdx * 3);
+      const rem = (digits - 11) % 3;
+      if (rem === 0) {
+        const val = Math.ceil(num / (d / 10)) / 10;
+        return val.toString() + suffixes[sIdx];
+      }
+      return Math.ceil(num / d) + suffixes[sIdx];
+    }
+
+    return num.toString();
   };
 
   const parseNumber = (input: string | number): number => {
@@ -29,28 +49,31 @@ export const useFormatters = () => {
     if (!input) return 0;
     const str = input.toUpperCase().trim().replace(/,/g, "");
     const suffixes: Record<string, number> = {
-      'M': 1e6, 'B': 1e9, 'T': 1e12, 'Q': 1e15, 'QQ': 1e18, 'QQQ': 1e21
+      'K': 1e3, 'M': 1e6, 'B': 1e9, 'T': 1e12, 'Q': 1e15, 'QQ': 1e18, 'QQQ': 1e21
     };
     const match = str.match(/^([0-9.]+)\s*([A-Z]*)$/);
     if (!match) return parseFloat(str) || 0;
-    const val = parseFloat(match[1]);
-    const suffix = match[2];
-    return suffixes[suffix] ? val * suffixes[suffix] : val;
+    const val = parseFloat(match[1] || "0");
+    const suffix = match[2] || "";
+    const multiplier = suffixes[suffix];
+    if (multiplier !== undefined) {
+      return val * multiplier;
+    }
+    return val;
   };
 
   const formatTime = (seconds: number): string => {
     if (seconds <= 0) return "Ready!";
     if (seconds === Infinity || isNaN(seconds)) return "∞";
 
-    const years = Math.floor(seconds / (3600 * 24 * 365));
-    
+    const years = Math.round(seconds / (3600 * 24 * 365));
     if (years > 100000000) return "Million ages";
 
-    const months = Math.floor((seconds % (3600 * 24 * 365)) / (3600 * 24 * 30));
-    const days = Math.floor((seconds % (3600 * 24 * 30)) / (3600 * 24));
-    const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
+    const months = Math.round((seconds % (3600 * 24 * 365)) / (3600 * 24 * 30));
+    const days = Math.round((seconds % (3600 * 24 * 30)) / (3600 * 24));
+    const hours = Math.round((seconds % (3600 * 24)) / 3600);
+    const mins = Math.round((seconds % 3600) / 60);
+    const secs = Math.round(seconds % 60);
 
     const parts = [];
     if (years > 0) parts.push(`${years}y`);

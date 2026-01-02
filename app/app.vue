@@ -6,30 +6,24 @@ const jsonInput = ref("");
 const importJson = () => {
   try {
     const rawData = JSON.parse(jsonInput.value);
-    
-    // Procura a chave 'bubba' ou 'Bubba' em níveis comuns (Efficiency ou Toolbox)
     let bubbaDataRaw = rawData.bubba || rawData.Bubba || (rawData.data && (rawData.data.bubba || rawData.data.Bubba));
-
     if (bubbaDataRaw) {
       const b = typeof bubbaDataRaw === 'string' ? JSON.parse(bubbaDataRaw) : bubbaDataRaw;
 
-      // 1. Meat e Gifts
       if (b[0]) {
         bubbaState.currentMeat = parseFloat(b[0][0]) || 0;
         bubbaState.selectedGifts[0] = parseInt(b[0][2]) - 1;
         bubbaState.selectedGifts[1] = parseInt(b[0][3]) - 1;
       }
 
-      // 2. Upgrades e Mindful (SOMA)
       if (b[1] && b[2]) {
-        // state.levels é a SOMA dos dois arrays
         bubbaState.levels = b[1].map((v: number, i: number) => v + (b[2][i] || 0));
-        // mindfulOffsets é o segundo array puramente
         bubbaState.mindfulOffsets = [...b[2]];
       }
 
-      // 3. Charisma
       if (b[3]) bubbaState.charismaLvs = [...b[3]];
+      if (b[4]) bubbaState.diceValues = [...b[4]];
+      if (b[5]) bubbaState.smokerValues = [...b[5]];
 
       isModalOpen.value = false;
       jsonInput.value = "";
@@ -75,7 +69,7 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
 .global-header {
   display: flex;
   justify-content: center;
-  padding: 8px 0; /* Mais fino */
+  padding: 8px 0;
   background: #0c0c16;
 }
 
@@ -90,7 +84,7 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
 
 .nav-link {
   color: #38bdf8;
-  text-decoration: none !important; /* Sem decoração */
+  text-decoration: none;
   font-weight: 900;
   font-size: 1rem;
   text-transform: uppercase;
