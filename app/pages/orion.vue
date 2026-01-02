@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-
 const { state, featherGen, target, timeToTarget, upgradeAnalysis, bestUpgradeIndex } = useOrion();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
