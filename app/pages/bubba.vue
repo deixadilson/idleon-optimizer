@@ -34,7 +34,7 @@ const buyBest = () => {
   if (idx !== -1) {
     state.currentMeat = Math.max(0, state.currentMeat - upgradeAnalysis.value[idx].cost);
     state.levels[idx]++;
-    state.mindfulOffsets[idx] = state.mindfulOffsets[idx]; // Persist offset
+    state.mindfulOffsets[idx] = state.mindfulOffsets[idx];
   }
 };
 
@@ -108,6 +108,14 @@ const charismaChartData = [
   { id: 'V', name: 'MINDFUL', bonus: (b: any) => `+${b.mindful.toFixed(0)}% 2x LVs` },
   { id: 'VI', name: 'SAVVY', bonus: () => `+0% Coins` },
 ];
+
+const cycleDiceValue = (idx: number, direction: number) => {
+  let val = state.diceValues[idx] || 0;
+  val += direction;
+  if (val < 0) val = diceStats.value.sides;
+  if (val > diceStats.value.sides) val = 0;
+  state.diceValues[idx] = val;
+};
 </script>
 
 <template>
@@ -160,9 +168,12 @@ const charismaChartData = [
         <div class="bonus-box dice-container">
           <div class="gifts-label">DICE</div>
           <div class="dice-grid">
-            <div v-for="n in diceStats.count" :key="n" class="die-slot">
-              <input type="number" v-model.number="state.diceValues[n-1]" min="0" :max="diceStats.sides" class="die-input" />
-              <span class="die-max">/{{ diceStats.sides }}</span>
+            <div v-for="n in Math.min(diceStats.count, state.diceValues.length)" :key="n" class="die-slot">
+              <button @click="cycleDiceValue(n-1, 1)" class="pat-btn">▲</button>
+              <div class="die-img-box">
+                <img v-if="state.diceValues[n-1] > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`" class="die-icon" />
+              </div>
+              <button @click="cycleDiceValue(n-1, -1)" class="pat-btn">▼</button>
             </div>
           </div>
           <div class="meter-footer">
@@ -253,11 +264,11 @@ const charismaChartData = [
 .radar-label { fill: #38bdf8; font-size: 14px; font-weight: 900; text-shadow: 1px 1px 2px #000; pointer-events: none; }
 .gold-text { fill: #fbbf24 !important; color: #fbbf24 !important; font-weight: 900 !important; }
 .gifts-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 150px; text-align: center; }
-.dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; width: 150px; }
-.dice-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.die-slot { background: #030712; border: 2px solid #1e293b; padding: 4px; border-radius: 6px; display: flex; align-items: center; }
-.die-input { width: 35px; background: transparent; border: none; color: #fff; font-weight: bold; text-align: center; }
-.die-max { font-size: 0.6rem; color: #475569; }
+.dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 150px; }
+.dice-grid { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.die-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.die-img-box { width: 44px; height: 44px; background: #030712; border: 2px solid #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+.die-icon { width: 34px; height: 34px; object-fit: contain; }
 .gifts-label { font-weight: 900; color: #94a3b8; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 5px; }
 .gifts-slots { display: flex; gap: 10px; justify-content: center; }
 .gift-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
