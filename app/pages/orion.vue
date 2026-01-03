@@ -113,4 +113,5 @@ const buyBest = () => {
 .pos { color: #4ade80; } .neg { color: #f87171; } .target-label { color: #38bdf8; font-size: 0.7rem; }
 .btn-auto { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .btn-wait { background: #444; cursor: not-allowed; }
+.mf-grid { grid-template-columns: repeat(10, 1fr); }
 </style>

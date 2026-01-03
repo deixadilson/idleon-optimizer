@@ -151,7 +151,11 @@ const cycleDiceValue = (idx: number, direction: number) => {
           <svg width="160" height="150" viewBox="0 0 150 150">
             <polygon v-for="r in [55, 40, 25, 10]" :key="r" :points="`${75 + r * Math.cos(240 * Math.PI/180)},${75 + r * Math.sin(240 * Math.PI/180)} ${75 + r * Math.cos(300 * Math.PI/180)},${75 + r * Math.sin(300 * Math.PI/180)} ${75 + r * Math.cos(0 * Math.PI/180)},${75 + r * Math.sin(0 * Math.PI/180)} ${75 + r * Math.cos(60 * Math.PI/180)},${75 + r * Math.sin(60 * Math.PI/180)} ${75 + r * Math.cos(120 * Math.PI/180)},${75 + r * Math.sin(120 * Math.PI/180)} ${75 + r * Math.cos(180 * Math.PI/180)},${75 + r * Math.sin(180 * Math.PI/180)}`" fill="none" stroke="#38bdf8" stroke-opacity="0.2" stroke-width="1" />
             <polygon :points="radarPoints" fill="rgba(56, 189, 248, 0.4)" stroke="#38bdf8" stroke-width="2" />
-            <text v-for="(p, i) in ['I','II','III','IV','V','VI']" :key="p" :x="75 + 68 * Math.cos([240, 300, 0, 60, 120, 180][i] * Math.PI/180)" :y="75 + 68 * Math.sin([240, 300, 0, 60, 120, 180][i] * Math.PI/180) + 5" text-anchor="middle" class="radar-label" :class="{ 'gold-text': state.emulsifiedIndex == i }">{{ p }}</text>
+            <text v-for="(p, i) in ['I','II','III','IV','V','VI']" :key="p" 
+              :x="75 + 68 * Math.cos(([240, 300, 0, 60, 120, 180][i] ?? 0) * Math.PI/180)" 
+              :y="75 + 68 * Math.sin(([240, 300, 0, 60, 120, 180][i] ?? 0) * Math.PI/180) + 5" 
+              text-anchor="middle" class="radar-label" :class="{ 'gold-text': state.emulsifiedIndex == i }"
+            >{{ p }}</text>
           </svg>
         </div>
 
@@ -172,6 +176,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
               <button @click="cycleDiceValue(n-1, 1)" class="pat-btn">▲</button>
               <div class="die-img-box">
                 <img v-if="state.diceValues[n-1] > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`" class="die-icon" />
+                <span v-else class="none-text">NONE</span>
               </div>
               <button @click="cycleDiceValue(n-1, -1)" class="pat-btn">▼</button>
             </div>
@@ -184,7 +189,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
       </div>
 
       <div class="settings-bar">
-        <div class="input-group"><label>Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
+        <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" max="10" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
         <div class="btn-group">

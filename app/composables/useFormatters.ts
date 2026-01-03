@@ -5,17 +5,11 @@ export const useFormatters = () => {
 
     const digits = Math.floor(Math.log10(absx) + 1e-10) + 1;
 
-    if (digits <= 4) {
+    if (digits <= 6) {
       return num.toLocaleString('en-US');
     }
 
-    const suffixes = ["", "K", "M", "B", "T", "Q", "QQ", "QQQ"];
-
-    if (digits === 5) {
-      const val = Math.ceil(num / 100) / 10;
-      return val.toString() + "K";
-    }
-    if (digits === 6) return Math.ceil(num / 1e3) + "K";
+    const suffixes = ["", "", "M", "B", "T", "Q", "QQ", "QQQ"];
 
     if (digits === 7) {
       const val = Math.ceil(num / 10000) / 100;
@@ -30,15 +24,18 @@ export const useFormatters = () => {
     if (digits >= 11) {
       const sIdx = Math.floor((digits - 11) / 3) + 3;
       if (sIdx >= suffixes.length) {
-        return num.toExponential(2).toUpperCase().replace("+", "");
+        const exponent = digits - 1;
+        const base = num / Math.pow(10, exponent);
+        const floored = Math.floor(base * 100) / 100;
+        return floored.toString() + "E" + exponent;
       }
       const d = Math.pow(10, sIdx * 3);
       const rem = (digits - 11) % 3;
       if (rem === 0) {
         const val = Math.ceil(num / (d / 10)) / 10;
-        return val.toString() + suffixes[sIdx];
+        return val.toString() + (suffixes[sIdx] ?? "");
       }
-      return Math.ceil(num / d) + suffixes[sIdx];
+      return Math.ceil(num / d) + (suffixes[sIdx] ?? "");
     }
 
     return num.toString();

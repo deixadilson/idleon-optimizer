@@ -3,7 +3,7 @@ export type BubbaLevels = number[];
 const state = reactive({
   levels: Array(28).fill(0) as BubbaLevels,
   mindfulOffsets: Array(28).fill(0) as BubbaLevels,
-  charismaLvs: [0, 0, 0, 0, 0, 0],
+  charismaLvs: [0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number],
   emulsifiedIndex: null as number | null,
   selectedGifts: [-1, -1],
   diceValues: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as number[],
@@ -54,8 +54,8 @@ export const useBubba = () => {
     return {
       hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
       rizzDisc: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
-      joy: (1 + ((lvs[2] ?? 0) * 0.05 * 1.2)) * getEmulsifyFact(2),
-      mindful: 0.1 * (lvs[4] ?? 0) * getEmulsifyFact(4)
+      joy: (1 + ((lvs[2] ?? 0) * 0.05 * 1.2 * superChartBonus)) * getEmulsifyFact(2),
+      mindful: 0.1 * (lvs[4] ?? 0) * superChartBonus * getEmulsifyFact(4)
     };
   });
 
@@ -116,12 +116,83 @@ export const useBubba = () => {
       const nextLevels = [...state.levels];
       const currentNextLv = nextLevels[i];
       if (currentNextLv !== undefined) nextLevels[i] = currentNextLv + 1;
-      const nGen = (i === 1) ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1] ?? 0)) : getMeatGen(nextLevels, currentHMult);
+
+      const isHappiBoi = (i === 1);
+      const baselineGen = isHappiBoi ? getMeatGen(state.levels, getAvgHMult(state.levels[1] ?? 0)) : genCurrent;
+      const nGen = isHappiBoi ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1] ?? 0)) : getMeatGen(nextLevels, currentHMult);
+
       const nTarget = getUpgradeCost(targetIdx, state.levels[targetIdx] ?? 0, state.mindfulOffsets[targetIdx] ?? 0, nextLevels);
+
+      const baselineTimeToTarget = baselineGen > 0 ? (targetCost - state.currentMeat) / (baselineGen / 60) : Infinity;
       const nTimeToTarget = nGen > 0 ? (nTarget - (state.currentMeat - cost)) / (nGen / 60) : Infinity;
-      let timeSaved = currentTimeToTarget - nTimeToTarget;
-      if (i === 5) timeSaved *= 0.00001;
-      return { cost, timeSaved, efficiency: cost > 0 ? timeSaved / cost : 0, icon: `/bubba/upg-${i}.png`, name: ["1st Slice", "Happi Boi", "Good Meat", "Bubba Boon", "Bargain", "Buyer Grin", "Charisma", "2nd Slice", "Megaflesh", "Fun Gifts", "Open Gift", "Great Meat", "Dice Roll", "Super Chart", "More Dice", "Smoker", "More Sides", "Uber Gifts", "Cost Saver", "Best Meat", "Real Love", "Spare Coins", "Loaded Dice", "3rd Slice", "Crossover", "2X Smoke", "Perma Sale", "Big Ol Coin"][i] };
+
+      let timeSaved = baselineTimeToTarget - nTimeToTarget;
+
+      if (i === 5) {
+        const b = (state.levels[0] || 0) + (state.levels[7] || 0) * 6 + (state.levels[23] || 0) * 50;
+        timeSaved = isFinite(currentTimeToTarget) ? (0.1 * currentTimeToTarget / (b + 1)) : 0;
+      }
+
+      if (i === 10 && state.selectedGifts.includes(0)) {
+        timeSaved += 1200;
+      }
+
+      let efficiency = cost > 0 ? timeSaved / cost : 0;
+
+      if (i === 6) {
+        const charLv = state.levels[i] ?? 0;
+        const deltaS = ((1 + 0.05 * (charLv + 1)) / (1 + 0.05 * charLv)) - 1;
+
+        const remHustle = Math.max(0, 120 - (state.charismaLvs[0] ?? 0));
+        const remRizz = Math.max(0, 120 - (state.charismaLvs[1] ?? 0));
+        const remJoy = Math.max(0, 120 - (state.charismaLvs[2] ?? 0));
+        const remMindful = Math.max(0, 120 - (state.charismaLvs[4] ?? 0));
+
+        const joyWeight = state.patsPerHour / 5;
+        const totalAccountLevels = state.levels.reduce((a, b) => a + b, 0);
+        const mindfulWeight = 2.0 * Math.max(0.1, 1 - (totalAccountLevels / 2300));
+
+        const potentialProfit = (remHustle * 1.0 * 1.0) +
+          (remRizz * 1.2 * 1.0) +
+          (remJoy * 0.8 * joyWeight) +
+          (remMindful * 1.5 * mindfulWeight);
+
+        const currentHustleMult = (state.charismaLvs[0] ?? 0) * 0.1 * (1 + 0.01 * (state.levels[13] ?? 0)) + 1;
+        const relativeFuturePower = potentialProfit / currentHustleMult;
+
+        timeSaved = isFinite(currentTimeToTarget) ? (deltaS * relativeFuturePower * currentTimeToTarget * 0.01) : 0;
+        efficiency = cost > 0 ? timeSaved / cost : 0;
+      }
+
+      if (i === 13) {
+        const scBonusCurrent = 1 + 0.01 * (state.levels[i] ?? 0);
+        const delta = 0.01;
+
+        const baseHustle = (state.charismaLvs[0] ?? 0) * 0.1;
+        const hustleGain = baseHustle * delta;
+
+        const baseRizz = (state.charismaLvs[1] ?? 0) * 0.02;
+        const totalRizz = baseRizz * scBonusCurrent;
+        const rizzGain = (baseRizz * delta) / (1 + totalRizz);
+
+        const baseJoy = (state.charismaLvs[2] ?? 0) * 0.06;
+        const joyWeight = state.patsPerHour / 5;
+        const joyGain = (baseJoy * delta) * joyWeight;
+
+        const baseMindful = (state.charismaLvs[4] ?? 0) * 0.1;
+        const totalAccountLevels = state.levels.reduce((a, b) => a + b, 0);
+        const mindfulWeight = 2.0 * Math.max(0.1, 1 - (totalAccountLevels / 2300));
+        const mindfulGain = (baseMindful * delta) * mindfulWeight;
+
+        const totalGainScore = hustleGain + rizzGain + joyGain + mindfulGain;
+        const currentHustleTotal = (baseHustle * scBonusCurrent) + 1;
+
+        let relativeSpeedup = totalGainScore / currentHustleTotal;
+        timeSaved = isFinite(currentTimeToTarget) ? (relativeSpeedup * currentTimeToTarget) : 0;
+        efficiency = cost > 0 ? timeSaved / cost : 0;
+      }
+
+      return { cost, timeSaved, efficiency, icon: `/bubba/upg-${i}.png`, name: ["1st Slice", "Happi Boi", "Good Meat", "Bubba Boon", "Bargain", "Buyer Grin", "Charisma", "2nd Slice", "Megaflesh", "Fun Gifts", "Open Gift", "Great Meat", "Dice Roll", "Super Chart", "More Dice", "Smoker", "More Sides", "Uber Gifts", "Cost Saver", "Best Meat", "Real Love", "Spare Coins", "Loaded Dice", "3rd Slice", "Crossover", "2X Smoke", "Perma Sale", "Big Ol Coin"][i] };
     });
   });
 
