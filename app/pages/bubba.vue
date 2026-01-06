@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue';
 
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti } = useBubba();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
@@ -142,7 +142,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
             </div>
           </div>
           <div class="meter-footer">
-            <span>Multi: {{ currentHMult.toFixed(2) }}x</span>
+            <span>Multi: {{ (currentHMult ?? 1).toFixed(2) }}x</span>
             <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
           </div>
         </div>
@@ -186,6 +186,20 @@ const cycleDiceValue = (idx: number, direction: number) => {
             <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
           </div>
         </div>
+
+        <div class="bonus-box smoker-container">
+          <div class="gifts-label">SMOKED MEATS</div>
+          <div class="smoker-grid">
+            <div v-for="n in 5" :key="n" class="smoker-slot">
+              <img :src="`/bubba/smoker-${n}.png` "/>
+              <input type="number" v-model.number="state.smokerValues[n-1]" class="smoker-input" min="0" />
+            </div>
+          </div>
+          <div class="meter-footer">
+            <span>Multi: {{ smokerMulti.toFixed(2) }}x</span>
+            <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
+          </div>
+        </div>
       </div>
 
       <div class="settings-bar">
@@ -193,14 +207,16 @@ const cycleDiceValue = (idx: number, direction: number) => {
         <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" max="10" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
         <div class="btn-group">
-            <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 }">{{ bestUpgradeIndex !== -1 ? 'BUY: ' + upgradeAnalysis[bestUpgradeIndex].name.toUpperCase() : 'WAIT' }}</button>
+            <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 && !upgradeAnalysis[bestUpgradeIndex] }">
+              {{ bestUpgradeIndex !== -1 && upgradeAnalysis[bestUpgradeIndex] ? 'BUY: ' + upgradeAnalysis[bestUpgradeIndex].name.toUpperCase() : 'WAIT' }}
+            </button>
             <button v-if="bestUpgradeIndex !== -1" @click="buyMindful" class="btn-mindful">BUY MINDFUL ✨</button>
         </div>
       </div>
 
       <main class="upgrade-grid">
         <div v-for="(upg, i) in upgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestUpgradeIndex, 'is-target': i === target.index }">
-          <div class="row-title">{{ upg.name.toUpperCase() }}</div>
+          <div class="row-title">{{ (upg.name ?? '').toUpperCase() }}</div>
           <div class="row-mid">
             <img :src="upg.icon" class="upg-icon" /><div class="level-box"><input type="number" v-model.number="state.levels[i]" min="0" /></div>
           </div>
@@ -270,7 +286,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
 .gold-text { fill: #fbbf24 !important; color: #fbbf24 !important; font-weight: 900 !important; }
 .gifts-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 150px; text-align: center; }
 .dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 150px; }
-.dice-grid { display: flex; gap: 8px; align-items: center; justify-content: center; }
+.dice-grid { display: flex; align-items: center; justify-content: center; }
 .die-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .die-img-box { width: 44px; height: 44px; background: #030712; border: 2px solid #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
 .die-icon { width: 34px; height: 34px; object-fit: contain; }
@@ -280,6 +296,10 @@ const cycleDiceValue = (idx: number, direction: number) => {
 .gift-img-box { width: 50px; height: 50px; background: #030712; border: 2px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
 .gift-icon { width: 40px; height: 40px; object-fit: contain; }
 .none-text { font-size: 0.6rem; color: #475569; font-weight: bold; }
+.smoker-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 200px; }
+.smoker-grid { display: flex; }
+.smoker-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.smoker-input { width: 38px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; font-size: 0.8rem; height: 24px; padding: 0; outline: none; }
 .btn-group { display: flex; gap: 10px; height: 42px; }
 .btn-auto { background: #10b981; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; text-shadow: 1px 1px 0 #000; }
 .btn-mindful { background: #fbbf24; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; }
