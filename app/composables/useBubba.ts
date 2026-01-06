@@ -64,6 +64,14 @@ export const useBubba = () => {
     return state.smokerValues.reduce((acc, val, i) => acc * (1 + (val ?? 0) * (rates[i] ?? 0)), 1);
   });
 
+  const maxPats = computed(() => {
+    const lv = state.levels[1] ?? 0;
+    if (lv <= 1) return 1 * 2;
+    if (lv === 2) return 3 * 2;
+    const baseline = Math.floor(Math.log2(lv - 1)) + 4;
+    return baseline * 2;
+  });
+
   const getCostReduction = (levels: BubbaLevels) => {
     const rizzDisc = charismaBonuses.value.rizzDisc;
     const bargainDisc = 1 - 1 / (1 + 0.01 * (levels[4] ?? 0));
@@ -98,6 +106,10 @@ export const useBubba = () => {
     return baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
   };
 
+  const getProgressReq = (n: number) => {
+    return 50 * Math.pow(2.8 + n / 3.55, n - Math.min(1, Math.floor(n / 4)));
+  };
+
   const upgradeAnalysis = computed(() => {
     const joyMulti = charismaBonuses.value.joy;
     const giftHappyMult = state.selectedGifts.includes(1) ? 1.5 : 1;
@@ -118,7 +130,16 @@ export const useBubba = () => {
     const currentTimeToTarget = genCurrent > 0 ? (targetCost - state.currentMeat) / (genCurrent / 60) : Infinity;
 
     return state.levels.map((_, i) => {
-      const cost = getUpgradeCost(i, state.levels[i] ?? 0, state.mindfulOffsets[i] ?? 0, state.levels);
+      const lv = state.levels[i] ?? 0;
+      const cost = getUpgradeCost(i, lv, state.mindfulOffsets[i] ?? 0, state.levels);
+
+      if (lv === 0 && i > 0) {
+        const req = getProgressReq(i);
+        if (req / (genCurrent || 1) > 24) {
+          return { cost, timeSaved: 0, efficiency: 0, icon: `/bubba/upg-${i}.png`, name: ["1st Slice", "Happi Boi", "Good Meat", "Bubba Boon", "Bargain", "Buyer Grin", "Charisma", "2nd Slice", "Megaflesh", "Fun Gifts", "Open Gift", "Great Meat", "Dice Roll", "Super Chart", "More Dice", "Smoker", "More Sides", "Uber Gifts", "Cost Saver", "Best Meat", "Real Love", "Spare Coins", "Loaded Dice", "3rd Slice", "Crossover", "2X Smoke", "Perma Sale", "Big Ol Coin"][i] };
+        }
+      }
+
       const nextLevels = [...state.levels];
       const currentNextLv = nextLevels[i];
       if (currentNextLv !== undefined) nextLevels[i] = currentNextLv + 1;
@@ -226,5 +247,5 @@ export const useBubba = () => {
     });
   });
 
-  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti };
+  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats };
 };

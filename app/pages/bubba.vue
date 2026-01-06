@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue';
 
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats } = useBubba();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
@@ -133,7 +133,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
           <div class="meter-main">
             <div class="meter-bar"><div class="meter-fill" :style="{ height: happinessBarHeight, backgroundColor: currentTier.color }"></div></div>
             <div class="meter-controls">
-              <button @click="state.activePats = Math.min(20, state.activePats + 1)" class="pat-btn">▲</button>
+              <button @click="state.activePats = Math.min(maxPats, state.activePats + 1)" class="pat-btn">▲</button>
               <div class="pat-label-container">
                   <div class="pat-label-small">pats</div>
                   <div class="pat-val">{{ state.activePats }}</div>

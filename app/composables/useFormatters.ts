@@ -2,43 +2,38 @@ export const useFormatters = () => {
   const formatNumber = (num: number): string => {
     const absx = Math.abs(num);
     if (absx === 0) return "0";
+    if (absx < 1e6) return num.toLocaleString('en-US');
 
-    const digits = Math.floor(Math.log10(absx) + 1e-10) + 1;
+    const suffixes = ["M", "B", "T", "Q", "QQ", "QQQ"];
+    const exponent = Math.floor(Math.log10(absx) + 1e-10);
 
-    if (digits <= 6) {
-      return num.toLocaleString('en-US');
+    let sIdx = 0;
+    if (exponent >= 25) sIdx = -1;
+    else if (exponent >= 22) sIdx = 5;
+    else if (exponent >= 19) sIdx = 4;
+    else if (exponent >= 16) sIdx = 3;
+    else if (exponent >= 13) sIdx = 2;
+    else if (exponent >= 10) sIdx = 1;
+    else sIdx = 0;
+
+    if (sIdx === -1) {
+      const e = exponent;
+      const base = num / Math.pow(10, e);
+      return (Math.floor(base * 100) / 100).toString() + "E" + e;
     }
 
-    const suffixes = ["", "", "M", "B", "T", "Q", "QQ", "QQQ"];
+    const bases = [1e6, 1e9, 1e12, 1e15, 1e18, 1e21];
+    const unitBase = bases[sIdx] ?? 1e6;
+    const unitVal = num / unitBase;
+    const suffix = suffixes[sIdx] ?? "";
 
-    if (digits === 7) {
-      const val = Math.ceil(num / 10000) / 100;
-      return val.toString() + "M";
-    }
-    if (digits === 8) {
-      const val = Math.ceil(num / 100000) / 10;
-      return val.toString() + "M";
-    }
-    if (digits === 9 || digits === 10) return Math.ceil(num / 1e6) + "M";
-
-    if (digits >= 11) {
-      const sIdx = Math.floor((digits - 11) / 3) + 3;
-      if (sIdx >= suffixes.length) {
-        const exponent = digits - 1;
-        const base = num / Math.pow(10, exponent);
-        const floored = Math.floor(base * 100) / 100;
-        return floored.toString() + "E" + exponent;
-      }
-      const d = Math.pow(10, sIdx * 3);
-      const rem = (digits - 11) % 3;
-      if (rem === 0) {
-        const val = Math.ceil(num / (d / 10)) / 10;
-        return val.toString() + (suffixes[sIdx] ?? "");
-      }
-      return Math.ceil(num / d) + (suffixes[sIdx] ?? "");
+    if (sIdx === 0) {
+      if (unitVal < 10) return (Math.ceil(num / 10000) / 100).toFixed(2).replace(/\.?0+$/, "") + "M";
+      if (unitVal < 100) return (Math.ceil(num / 100000) / 10).toFixed(1).replace(/\.?0+$/, "") + "M";
+      return Math.ceil(unitVal).toString() + "M";
     }
 
-    return num.toString();
+    return Math.ceil(unitVal).toString() + suffix;
   };
 
   const parseNumber = (input: string | number): number => {
