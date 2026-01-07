@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted } from 'vue';
 
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush } = useBubba();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
 const poppyInputDisplay = ref("");
+
+const isHelpOpen = ref(false);
 
 onMounted(() => { 
   meatInputDisplay.value = formatNumber(state.currentMeat); 
@@ -31,25 +33,27 @@ const handlePoppyBlur = () => {
 
 const buyBest = () => {
   const idx = bestUpgradeIndex.value;
-  if (idx !== -1) {
-    state.currentMeat = Math.max(0, state.currentMeat - upgradeAnalysis.value[idx].cost);
+  if (idx !== -1 && upgradeAnalysis.value[idx]) {
     state.levels[idx]++;
-    state.mindfulOffsets[idx] = state.mindfulOffsets[idx];
   }
 };
 
 const buyMindful = () => {
   const idx = bestUpgradeIndex.value;
-  if (idx !== -1 && !MINDFUL_RESTRICTED.includes(idx)) {
-    state.currentMeat = Math.max(0, state.currentMeat - upgradeAnalysis.value[idx].cost);
+  if (idx !== -1 && !MINDFUL_RESTRICTED.includes(idx) && upgradeAnalysis.value[idx]) {
     state.levels[idx] += 2;
     state.mindfulOffsets[idx] += 1;
   }
 };
 
 const toggleEmulsify = (idx: number) => {
-  if (state.levels[8] < 6) return;
-  state.emulsifiedIndex = state.emulsifiedIndex === idx ? null : idx;
+  const list = state.emulsifiedIndices;
+  const pos = list.indexOf(idx);
+  if (pos === -1) {
+    list.push(idx);
+  } else {
+    list.splice(pos, 1);
+  }
 };
 
 const cycleGift = (slot: number, direction: number) => {
@@ -121,6 +125,11 @@ const cycleDiceValue = (idx: number, direction: number) => {
 <template>
   <div class="bubba-page">
     <div class="main-width-wrapper">
+      <div class="page-title-row">
+        <h1 class="page-title">BUBBA THE CHONKY SEAL'S ARCTIC MARKET OF MEATS</h1>
+        <button class="help-btn" @click="isHelpOpen = true">ℹ</button>
+      </div>
+
       <header class="dashboard">
         <div class="card"><label>Meat Production Rate</label><div class="val">{{ formatNumber(meatGen) }}/min</div></div>
         <div class="card highlight"><label>Current Target: {{ target.name }}</label><div class="val">{{ formatNumber(target.cost) }}</div></div>
@@ -142,8 +151,10 @@ const cycleDiceValue = (idx: number, direction: number) => {
             </div>
           </div>
           <div class="meter-footer">
-            <span>Multi: {{ (currentHMult ?? 1).toFixed(2) }}x</span>
-            <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <span>Multi: {{ (currentHMult ?? 1).toFixed(2) }}x</span>
+              <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
+            </div>
           </div>
         </div>
 
@@ -154,7 +165,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
             <text v-for="(p, i) in ['I','II','III','IV','V','VI']" :key="p" 
               :x="75 + 68 * Math.cos(([240, 300, 0, 60, 120, 180][i] ?? 0) * Math.PI/180)" 
               :y="75 + 68 * Math.sin(([240, 300, 0, 60, 120, 180][i] ?? 0) * Math.PI/180) + 5" 
-              text-anchor="middle" class="radar-label" :class="{ 'gold-text': state.emulsifiedIndex == i }"
+              text-anchor="middle" class="radar-label" :class="{ 'gold-text': state.emulsifiedIndices.includes(i) }"
             >{{ p }}</text>
           </svg>
         </div>
@@ -200,6 +211,24 @@ const cycleDiceValue = (idx: number, direction: number) => {
             <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
           </div>
         </div>
+ 
+        <div class="strategy-bar">
+          <div class="strat-item">
+            <span class="strat-label">Pat Value:</span>
+            <span class="strat-val">{{ formatNumber(meatPerPat) }}</span>
+            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+          </div>
+          <div class="strat-item">
+            <span class="strat-label">Time Skip Value:</span>
+            <span class="strat-val">{{ formatNumber(twoHourSkip) }}</span>
+            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+          </div>
+          <div v-if="state.selectedGifts.includes(0)" class="strat-item">
+            <span class="strat-label">Mega Push Value:</span>
+            <span class="strat-val">{{ formatNumber(openGiftMegaPush.yield) }}</span>
+            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+          </div>
+        </div>
       </div>
 
       <div class="settings-bar">
@@ -240,11 +269,11 @@ const cycleDiceValue = (idx: number, direction: number) => {
 
       <section class="charisma-main-card">
         <div v-for="(attr, idx) in charismaChartData" :key="attr.id" 
-          class="attr-cell" :class="{ 'emulsified': state.emulsifiedIndex === idx }"
+          class="attr-cell" :class="{ 'emulsified': state.emulsifiedIndices.includes(idx) }"
           @dblclick="toggleEmulsify(idx)"
         >
           <div class="attr-top">
-            <div class="attr-roman" :class="{ 'gold-text': state.emulsifiedIndex === idx }">{{ attr.id }}</div>
+            <div class="attr-roman" :class="{ 'gold-text': state.emulsifiedIndices.includes(idx) }">{{ attr.id }}</div>
             <div class="attr-mid-info">
               <span class="attr-name">{{ attr.name }}</span>
               <div class="attr-input-line"><span>Lv.</span><input type="number" v-model.number="state.charismaLvs[idx]" min="0" /></div>
@@ -263,72 +292,597 @@ const cycleDiceValue = (idx: number, direction: number) => {
           <div v-for="n in 12" :key="n" class="mf-slot" :style="{ opacity: state.levels[8] >= n ? 1 : 0.2 }"><img :src="`/bubba/mf-${n}.png`" class="mf-icon" /><div v-if="n === 12 && state.levels[8] > 12" class="mf-badge">+{{ state.levels[8] - 12 }}</div></div>
         </div>
       </section>
+
+      <div v-if="isHelpOpen" class="modal-overlay" @click.self="isHelpOpen = false">
+        <div class="help-modal-box">
+          <h2>How to use Bubba's Optimizer</h2>
+          <div class="help-modal-body">
+            <ol>
+              <li><strong>Import Data:</strong> Fill the fields yourself or import game data by clicking the <strong>IMPORT JSON</strong> button at the top and paste your raw JSON from Idleon Efficiency or Toolbox.</li>
+              <li><strong>Efficiency:</strong> The optimizer estimates "Time Saved per Meat Spent". The best upgrade is highlighted in <strong>Green</strong>.</li>
+              <li><strong>Auto Buy:</strong> After you buy the recommended upgrade in the game you can click the <strong>"BUY: [UPGRADE]"</strong> green button to update the fields and get the next recommendation. If you got a Mindful Success in the game, click the <strong>"BUY MINDFUL ✨"</strong> button instead!</li>
+              <li><strong>Happiness:</strong> Fill out the <strong>Pats/Hr</strong> field based on how often you pet Bubba to help the optimizer more precisely recommend upgrades like Happi Boi and others.</li>
+              <li><strong>Charisma Emulsify:</strong> After unlocking Grand Salmon Mega Flesh, you can double-click attributes in the Charisma section to make them "Emulsified". You can also emulsify <strong>multiple</strong> attributes at the same time to simulate and plan your progression more accurately!</li>
+              <li><strong>Custom Strategy:</strong> The optimizer will never recommend the following upgrades: Megaflesh, Bubba Boon, Fun Gifts, Open Gift, Smoker, Dice Roll, More Dice, More Sides and Loaded Dice. You should buy them based on your own strategy</li>
+              <li><strong>Information Bar:</strong>
+                <ul style="padding-left: 20px; font-size: 0.8rem; margin-top: 5px;">
+                  <li><strong>Pat Value:</strong> The <em>total</em> extra meat yield of one single Pat on Bubba, calculated over its full duration.</li>
+                  <li><strong>Time Skip Value:</strong> The meat yield of a <img src="/bubba/time-skip.png" class="help-inline-icon"/> FUNNY 2 HR SLICE time skip. (no happiness multiplier)</li>
+                  <li><strong>Mega Push Value:</strong> A simulation of using <em>all</em> your current meat to buy "Open Gifts" at once with your current happiness multiplier.</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+          <button @click="isHelpOpen = false" class="btn-close-help">GOT IT!</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.bubba-page { padding: 20px; display: flex; justify-content: center; }
-.main-width-wrapper { width: 1120px; }
-.bonus-row { display: flex; justify-content: space-between; gap: 30px; margin-bottom: 25px; background: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; align-items: center; width: 100%; }
-.happiness-meter { width: 160px; display: flex; flex-direction: column; align-items: center; }
-.meter-title { font-weight: 900; font-size: 0.9rem; margin-bottom: 10px; text-shadow: 1px 1px 0 #000; text-align: center; }
-.meter-main { display: flex; gap: 15px; align-items: center; justify-content: center; height: 100px; width: 100%; }
-.meter-bar { width: 22px; height: 100%; background: #030712; border: 2px solid #334155; border-radius: 4px; display: flex; align-items: flex-end; overflow: hidden; }
-.meter-fill { width: 100%; transition: height 0.3s ease; }
-.pat-label-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 4px 0; }
-.pat-label-small { font-size: 0.65rem; color: #94a3b8; font-weight: 900; text-transform: uppercase; line-height: 1; }
-.pat-val { font-size: 1.4rem; font-weight: 900; text-align: center; line-height: 1.1; color: #fff; }
-.pat-btn { background: #1f2937; color: white; border: 1px solid #374151; cursor: pointer; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; width: 30px; }
-.meter-footer { margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; color: #38bdf8; }
-.footer-icon { vertical-align: middle; width: 18px; height: 18px; }
-.radar-label { fill: #38bdf8; font-size: 14px; font-weight: 900; text-shadow: 1px 1px 2px #000; pointer-events: none; }
-.gold-text { fill: #fbbf24 !important; color: #fbbf24 !important; font-weight: 900 !important; }
-.gifts-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 150px; text-align: center; }
-.dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 150px; }
-.dice-grid { display: flex; align-items: center; justify-content: center; }
-.die-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.die-img-box { width: 44px; height: 44px; background: #030712; border: 2px solid #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
-.die-icon { width: 34px; height: 34px; object-fit: contain; }
-.gifts-label { font-weight: 900; color: #94a3b8; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 5px; }
-.gifts-slots { display: flex; gap: 10px; justify-content: center; }
-.gift-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.gift-img-box { width: 50px; height: 50px; background: #030712; border: 2px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.gift-icon { width: 40px; height: 40px; object-fit: contain; }
-.none-text { font-size: 0.6rem; color: #475569; font-weight: bold; }
-.smoker-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 200px; }
-.smoker-grid { display: flex; }
-.smoker-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.smoker-input { width: 38px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; font-size: 0.8rem; height: 24px; padding: 0; outline: none; }
-.btn-group { display: flex; gap: 10px; height: 42px; }
-.btn-auto { background: #10b981; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; text-shadow: 1px 1px 0 #000; }
-.btn-mindful { background: #fbbf24; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; }
-.btn-wait { background: #444; color: #888; cursor: not-allowed; }
-.charisma-main-card { background: #111827; padding: 20px; border: 2px solid #1e293b; border-radius: 12px; display: flex; justify-content: space-around; width: 100%; margin-bottom: 30px; user-select: none; }
-.attr-cell { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid transparent; border-radius: 8px; width: 165px; cursor: pointer; }
-.attr-cell.emulsified { border-color: #fbbf24; background: rgba(251, 191, 36, 0.05); }
-.attr-top { display: flex; align-items: center; gap: 10px; }
-.attr-roman { font-size: 2.2rem; min-width: 45px; text-align: center; font-weight: 900; color: #38bdf8; text-shadow: 2px 2px 0 #000; }
-.attr-mid-info { display: flex; flex-direction: column; }
-.attr-name { font-size: 0.8rem; color: #fff; font-weight: bold; }
-.attr-input-line { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: #94a3b8; }
-.attr-input-line input { width: 45px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; }
-.attr-desc-line { font-size: 0.75rem; font-weight: 800; color: #cbd5e1; border-top: 1px solid #1e293b; padding-top: 6px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; }
-.mini-meat { width: 16px; height: 16px; vertical-align: middle; }
-.upgrade-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 2px solid #000; width: 100%; margin: 0 auto 30px auto; }
-.upgrade-card { background: #b397b3; border: 1px solid #000; display: flex; flex-direction: column; }
-.upgrade-card.best { outline: 4px solid #10b981; z-index: 5; }
-.row-title, .cost-container, .level-box input, .row-time { color: #fff; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-weight: bold; }
-.row-title { height: 40px; display: flex; align-items: center; text-align: center; justify-content: center; font-size: 1.1rem; background: rgba(0,0,0,0.1); }
-.row-mid { display: flex; align-items: center; justify-content: space-around; padding: 8px 5px; }
-.upg-icon { width: 60px; height: 35px; object-fit: contain; }
-.level-box { background: rgba(0,0,0,0.4); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
-.level-box input { width: 55px; background: transparent; border: none; font-size: 1.3rem; text-align: center; outline: none; }
-.row-time { display: flex; align-items: center; justify-content: center; min-height: 25px; padding-bottom: 5px; font-size: 0.9rem; }
-.time-pos { color: #4ade80; } .time-neg { color: #f87171; }
-.row-cost { height: 34px; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; margin: 0 4px 4px 4px; position: relative; }
-.cost-container { display: flex; align-items: center; gap: 4px; font-size: 1.1rem; }
-.mindful-active { color: #fbbf24; }
-.cost-adj-controls { position: absolute; right: 5px; display: flex; flex-direction: column; gap: 2px; }
-.cost-chevron { background: #334155; border: none; color: white; width: 14px; height: 14px; font-size: 0.5rem; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.bubba-page {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+.main-width-wrapper {
+  width: 1120px;
+}
+.strategy-bar {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+  border-top: 1px solid #1e293b;
+  padding-top: 20px;
+  width: 100%;
+  margin-top: 10px;
+  align-items: center;
+}
+.strat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.strat-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+.strat-val {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #fff;
+}
+.bonus-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 25px;
+  background: #111827;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.happiness-meter {
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.meter-title {
+  font-weight: 900;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  text-shadow: 1px 1px 0 #000;
+  text-align: center;
+}
+.meter-main {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  width: 100%;
+}
+.meter-bar {
+  width: 22px;
+  height: 100%;
+  background: #030712;
+  border: 2px solid #334155;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.meter-fill {
+  width: 100%;
+  transition: height 0.3s ease;
+}
+.pat-label-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0;
+}
+.pat-label-small {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.pat-val {
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+  line-height: 1.1;
+  color: #fff;
+}
+.pat-btn {
+  background: #1f2937;
+  color: white;
+  border: 1px solid #374151;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  width: 30px;
+}
+.meter-footer {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  color: #38bdf8;
+}
+.footer-icon {
+  vertical-align: middle;
+  width: 18px;
+  height: 18px;
+}
+.radar-label {
+  fill: #38bdf8;
+  font-size: 14px;
+  font-weight: 900;
+  text-shadow: 1px 1px 2px #000;
+  pointer-events: none;
+}
+.gold-text {
+  fill: #fbbf24 !important;
+  color: #fbbf24 !important;
+  font-weight: 900 !important;
+}
+.gifts-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 150px;
+  text-align: center;
+}
+.dice-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 150px;
+}
+.dice-grid {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.die-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.die-img-box {
+  width: 44px;
+  height: 44px;
+  background: #030712;
+  border: 2px solid #1e293b;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.die-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.gifts-label {
+  font-weight: 900;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+.gifts-slots {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.gift-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.gift-img-box {
+  width: 50px;
+  height: 50px;
+  background: #030712;
+  border: 2px solid #1e293b;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gift-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.none-text {
+  font-size: 0.6rem;
+  color: #475569;
+  font-weight: bold;
+}
+.smoker-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 200px;
+}
+.smoker-grid {
+  display: flex;
+}
+.smoker-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.smoker-input {
+  width: 38px;
+  background: #030712;
+  border: 1px solid #334155;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.8rem;
+  height: 24px;
+  padding: 0;
+  outline: none;
+}
+.btn-group {
+  display: flex;
+  gap: 10px;
+  height: 42px;
+}
+.btn-auto {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  text-shadow: 1px 1px 0 #000;
+}
+.btn-mindful {
+  background: #fbbf24;
+  color: #000;
+  border: none;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+}
+.page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-top: 10px;
+}
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #38bdf8;
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+}
+.help-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #38bdf8;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.help-btn:hover {
+  background: #334155;
+  color: white;
+}
+.help-modal-box {
+  background: #1e293b;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 750px;
+  width: 90%;
+  border: 1px solid #334155;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.help-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  margin-bottom: 20px;
+  padding-right: 10px;
+}
+.help-modal-box h2 {
+  color: #38bdf8;
+  margin-bottom: 20px;
+}
+.help-modal-box ol {
+  padding-left: 20px;
+  color: #cbd5e1;
+}
+.help-modal-box li {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.help-modal-box strong {
+  color: #f8fafc;
+}
+.btn-close-help {
+  margin-top: 20px;
+  width: 100%;
+  background: #38bdf8;
+  color: #000;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-close-help:hover {
+  filter: brightness(1.1);
+}
+.help-inline-icon {
+  height: 25px;
+  vertical-align: bottom;
+}
+.btn-wait {
+  background: #444;
+  color: #888;
+  cursor: not-allowed;
+}
+.charisma-main-card {
+  background: #111827;
+  padding: 20px;
+  border: 2px solid #1e293b;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  margin-bottom: 30px;
+  user-select: none;
+}
+.attr-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  width: 165px;
+  cursor: pointer;
+}
+.attr-cell.emulsified {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.05);
+}
+.attr-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.attr-roman {
+  font-size: 2.2rem;
+  min-width: 45px;
+  text-align: center;
+  font-weight: 900;
+  color: #38bdf8;
+  text-shadow: 2px 2px 0 #000;
+}
+.attr-mid-info {
+  display: flex;
+  flex-direction: column;
+}
+.attr-name {
+  font-size: 0.8rem;
+  color: #fff;
+  font-weight: bold;
+}
+.attr-input-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+.attr-input-line input {
+  width: 45px;
+  background: #030712;
+  border: 1px solid #334155;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: inherit;
+}
+.attr-desc-line {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  border-top: 1px solid #1e293b;
+  padding-top: 6px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.mini-meat {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 2px solid #000;
+  width: 100%;
+  margin: 0 auto 30px auto;
+}
+.upgrade-card {
+  background: #b397b3;
+  border: 1px solid #000;
+  display: flex;
+  flex-direction: column;
+}
+.upgrade-card.best {
+  outline: 4px solid #10b981;
+  z-index: 5;
+}
+.row-title,
+.cost-container,
+.level-box input,
+.row-time {
+  color: #fff;
+  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+  font-weight: bold;
+}
+.row-title {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: rgba(0, 0, 0, 0.1);
+}
+.row-mid {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 8px 5px;
+}
+.upg-icon {
+  width: 60px;
+  height: 35px;
+  object-fit: contain;
+}
+.level-box {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.level-box input {
+  width: 55px;
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  text-align: center;
+  outline: none;
+}
+.row-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding-bottom: 5px;
+  font-size: 0.9rem;
+}
+.time-pos {
+  color: #4ade80;
+}
+.time-neg {
+  color: #f87171;
+}
+.row-cost {
+  height: 34px;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px 4px 4px;
+  position: relative;
+}
+.cost-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.1rem;
+}
+.mindful-active {
+  color: #fbbf24;
+}
+.cost-adj-controls {
+  position: absolute;
+  right: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cost-chevron {
+  background: #334155;
+  border: none;
+  color: white;
+  width: 14px;
+  height: 14px;
+  font-size: 0.5rem;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 </style>
