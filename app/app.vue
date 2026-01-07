@@ -1,35 +1,98 @@
 <script setup lang="ts">
 const { state: bubbaState } = useBubba();
+const { state: orionState } = useOrion();
 const isModalOpen = ref(false);
 const jsonInput = ref("");
+const textareaRef = ref<HTMLTextAreaElement | null>(null);
+
+watch(isModalOpen, (val) => {
+  if (val) {
+    nextTick(() => {
+      textareaRef.value?.focus();
+    });
+  }
+});
 
 const importJson = () => {
   try {
     const rawData = JSON.parse(jsonInput.value);
-    let bubbaDataRaw = rawData.bubba || rawData.Bubba || (rawData.data && (rawData.data.bubba || rawData.data.Bubba));
+    
+    let bubbaDataRaw = null;
+    const bObj = rawData.data || rawData;
+    
+    if (bObj.bubba || bObj.Bubba) {
+      bubbaDataRaw = bObj.bubba || bObj.Bubba;
+    } else if (bObj.cloudData?.bubba) {
+      bubbaDataRaw = bObj.cloudData.bubba;
+    } else if (Array.isArray(rawData) && Array.isArray(rawData[0]) && Array.isArray(rawData[1])) {
+      bubbaDataRaw = rawData;
+    }
+
     if (bubbaDataRaw) {
       const b = typeof bubbaDataRaw === 'string' ? JSON.parse(bubbaDataRaw) : bubbaDataRaw;
-
-      if (b[0]) {
+      
+      if (b[0] && Array.isArray(b[0])) {
         bubbaState.currentMeat = parseFloat(b[0][0]) || 0;
-        bubbaState.selectedGifts[0] = parseInt(b[0][2]) - 1;
-        bubbaState.selectedGifts[1] = parseInt(b[0][3]) - 1;
+        if (b[0][2] !== undefined) bubbaState.selectedGifts[0] = parseInt(b[0][2]) - 1;
+        if (b[0][3] !== undefined) bubbaState.selectedGifts[1] = parseInt(b[0][3]) - 1;
       }
-
-      if (b[1] && b[2]) {
-        bubbaState.levels = b[1].map((v: number, i: number) => v + (b[2][i] || 0));
-        bubbaState.mindfulOffsets = [...b[2]];
+      
+      if (b[1] && b[2] && Array.isArray(b[1]) && Array.isArray(b[2])) {
+        bubbaState.levels = b[1].map((v: any, i: number) => (parseInt(v) || 0) + (parseInt(b[2][i]) || 0));
+        bubbaState.mindfulOffsets = b[2].map((v: any) => parseInt(v) || 0);
       }
-
-      if (b[3]) bubbaState.charismaLvs = [...b[3]];
-      if (b[4]) bubbaState.diceValues = [...b[4]];
-      if (b[5]) bubbaState.smokerValues = [...b[5]];
-
-      isModalOpen.value = false;
-      jsonInput.value = "";
+      
+      if (b[3] && Array.isArray(b[3])) {
+        bubbaState.charismaLvs = [...b[3]].map(v => parseInt(v) || 0) as [number, number, number, number, number, number];
+      }
+      if (b[4] && Array.isArray(b[4])) {
+        bubbaState.diceValues = b[4].map(v => parseInt(v) || 0);
+      }
+      if (b[5] && Array.isArray(b[5])) {
+        bubbaState.smokerValues = b[5].map(v => parseInt(v) || 0);
+      }
     }
+
+    const optLacc = rawData.OptLacc || (rawData.data && rawData.data.OptLacc);
+    if (optLacc && Array.isArray(optLacc)) {
+      let foundIndex = -1;
+
+      if (optLacc.length > 253) {
+        const isMarkersMatch = optLacc[245] === 1 && optLacc[246] === 26;
+        if (isMarkersMatch || (parseFloat(optLacc[253]) > 0 && Array.isArray(optLacc.slice(254, 263)))) {
+           foundIndex = 253;
+        }
+      }
+
+      if (foundIndex === -1) {
+        for (let i = 0; i < optLacc.length - 12; i++) {
+          if (optLacc[i] === 1 && optLacc[i+1] === 26 && optLacc[i+2] === 1 && optLacc[i+3] === 1 && 
+              optLacc[i+4] === 1 && optLacc[i+5] === 1 && optLacc[i+6] === 1 && optLacc[i+7] === 1) {
+            foundIndex = i + 8;
+            break;
+          }
+        }
+      }
+
+      if (foundIndex !== -1) {
+        orionState.currentFeathers = parseFloat(optLacc[foundIndex]) || 0;
+        const levelsSlice = optLacc.slice(foundIndex + 1, foundIndex + 10);
+        orionState.levels = levelsSlice.map(v => parseInt(v) || 0) as [number, number, number, number, number, number, number, number, number];
+        orionState.shinyCount = parseInt(optLacc[foundIndex + 11]) || 0;
+      }
+    }
+
+    const upgVault = rawData.UpgVault || (rawData.data && rawData.data.UpgVault);
+    if (upgVault && Array.isArray(upgVault)) {
+      const lv21 = parseInt(upgVault[21]) || 0;
+      const lv32 = parseInt(upgVault[32]) || 0;
+      orionState.goGoOwl = Math.round(lv21 * 5 * (1 + lv32 * 0.01));
+    }
+
+    isModalOpen.value = false;
+    jsonInput.value = "";
   } catch (e) {
-    console.error("Failed to parse JSON", e);
+    console.error(e);
   }
 };
 </script>
@@ -52,7 +115,7 @@ const importJson = () => {
       <div class="modal-box">
         <h3>Import Game Data</h3>
         <p>Paste raw JSON from Idleon Efficiency or Toolbox:</p>
-        <textarea v-model="jsonInput" placeholder="Paste here..."></textarea>
+        <textarea ref="textareaRef" v-model="jsonInput" placeholder="Paste here..."></textarea>
         <div class="modal-actions">
           <button @click="isModalOpen = false" class="btn-cancel">Cancel</button>
           <button @click="importJson" class="btn-confirm">Import</button>

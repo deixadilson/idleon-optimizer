@@ -94,6 +94,7 @@ const buyBest = () => {
       </section>
     </div>
   </div>
+  <div><a href='https://ko-fi.com/A0A01RVDGT' target='_blank'><img style="display: block; height:36px; margin: 0 auto 10px;" src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" alt="Buy Me a Coffee at ko-fi.com" /></a></div>
 </template>
 
 <style scoped>

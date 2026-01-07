@@ -216,8 +216,6 @@ export const useBubba = () => {
           efficiency = 0;
         } else {
           const totalCharismaLvs = state.charismaLvs.reduce((a, b) => a + (b ?? 0), 0);
-          const baseCost = 88.6;
-          const growth = 1.034;
 
           const joyWeight = state.patsPerHour / 5;
           const totalAccountLevels = state.levels.reduce((a, b) => a + b, 0);
@@ -230,14 +228,17 @@ export const useBubba = () => {
           const activeWeightSum = usefulIndices.reduce((acc, idx) => acc + (weights[idx] ?? 0), 0);
           const avgWeight = activeWeightSum / usefulIndices.length;
 
-          const firstTerm = baseCost * Math.pow(growth, totalCharismaLvs) * avgWeight;
-          const weightedDistance = firstTerm * (Math.pow(growth, remLevels) - 1) / (growth - 1);
+          let weightedDistance = 0;
+          for (let k = 0; k < remLevels; k++) {
+            const currentLv = totalCharismaLvs + k;
+            const cost = 20 * (1 + currentLv / 20) * Math.pow(1.03, currentLv);
+            weightedDistance += cost * avgWeight;
+          }
 
           const numbahsActive = state.selectedGifts.includes(2);
           const numbahsMult = numbahsActive ? 2.5 : 1;
-
-          const currentSpeed = (1 + 0.0472 * charLv) * numbahsMult;
-          const nextSpeed = (1 + 0.0472 * (charLv + 1)) * numbahsMult;
+          const currentSpeed = (1 + 0.05 * charLv) * numbahsMult;
+          const nextSpeed = (1 + 0.05 * (charLv + 1)) * numbahsMult;
 
           timeSaved = weightedDistance * (1 / currentSpeed - 1 / nextSpeed);
           efficiency = cost > 0 ? timeSaved / cost : 0;

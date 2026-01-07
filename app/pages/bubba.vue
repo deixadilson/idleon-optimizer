@@ -292,7 +292,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
           <div v-for="n in 12" :key="n" class="mf-slot" :style="{ opacity: state.levels[8] >= n ? 1 : 0.2 }"><img :src="`/bubba/mf-${n}.png`" class="mf-icon" /><div v-if="n === 12 && state.levels[8] > 12" class="mf-badge">+{{ state.levels[8] - 12 }}</div></div>
         </div>
       </section>
-
+      <div><a href='https://ko-fi.com/A0A01RVDGT' target='_blank'><img style="display: block; height:36px; margin: 20px auto 10px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=6" alt="Buy Me a Coffee at ko-fi.com" /></a></div>
       <div v-if="isHelpOpen" class="modal-overlay" @click.self="isHelpOpen = false">
         <div class="help-modal-box">
           <h2>How to use Bubba's Optimizer</h2>
@@ -302,8 +302,8 @@ const cycleDiceValue = (idx: number, direction: number) => {
               <li><strong>Efficiency:</strong> The optimizer estimates "Time Saved per Meat Spent". The best upgrade is highlighted in <strong>Green</strong>.</li>
               <li><strong>Auto Buy:</strong> After you buy the recommended upgrade in the game you can click the <strong>"BUY: [UPGRADE]"</strong> green button to update the fields and get the next recommendation. If you got a Mindful Success in the game, click the <strong>"BUY MINDFUL ✨"</strong> button instead!</li>
               <li><strong>Happiness:</strong> Fill out the <strong>Pats/Hr</strong> field based on how often you pet Bubba to help the optimizer more precisely recommend upgrades like Happi Boi and others.</li>
-              <li><strong>Charisma Emulsify:</strong> After unlocking Grand Salmon Mega Flesh, you can double-click attributes in the Charisma section to make them "Emulsified". You can also emulsify <strong>multiple</strong> attributes at the same time to simulate and plan your progression more accurately!</li>
-              <li><strong>Custom Strategy:</strong> The optimizer will never recommend the following upgrades: Megaflesh, Bubba Boon, Fun Gifts, Open Gift, Smoker, Dice Roll, More Dice, More Sides and Loaded Dice. You should buy them based on your own strategy</li>
+              <li><strong>Charisma Emulsify:</strong> After unlocking Grand Salmon Mega Flesh you can double-click attributes in the Charisma section to make them "Emulsified". You can also emulsify <strong>multiple</strong> attributes at the same time to simulate and plan your progression more accurately!</li>
+              <li><strong>Custom Strategy:</strong> The optimizer will never recommend the following upgrades: Megaflesh, Bubba Boon, Fun Gifts, Open Gift, Smoker, Dice Roll, More Dice, More Sides and Loaded Dice (The same upgrades that MINDFUL Attribute don't work for). You should buy them based on your own strategy.</li>
               <li><strong>Information Bar:</strong>
                 <ul style="padding-left: 20px; font-size: 0.8rem; margin-top: 5px;">
                   <li><strong>Pat Value:</strong> The <em>total</em> extra meat yield of one single Pat on Bubba, calculated over its full duration.</li>
@@ -513,8 +513,8 @@ const cycleDiceValue = (idx: number, direction: number) => {
 }
 .gifts-slots {
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  gap: 5px;
+  height: 125px;
 }
 .gift-slot {
   display: flex;
@@ -557,6 +557,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
 }
 .smoker-input {
@@ -572,6 +573,9 @@ const cycleDiceValue = (idx: number, direction: number) => {
   height: 24px;
   padding: 0;
   outline: none;
+}
+.dice-grid, .smoker-grid {
+  min-height: 97px;
 }
 .btn-group {
   display: flex;
@@ -642,7 +646,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
   background: #1e293b;
   padding: 30px;
   border-radius: 12px;
-  max-width: 750px;
+  max-width: 680px;
   width: 90%;
   border: 1px solid #334155;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
@@ -814,11 +818,6 @@ const cycleDiceValue = (idx: number, direction: number) => {
   align-items: center;
   justify-content: space-around;
   padding: 8px 5px;
-}
-.upg-icon {
-  width: 60px;
-  height: 35px;
-  object-fit: contain;
 }
 .level-box {
   background: rgba(0, 0, 0, 0.4);

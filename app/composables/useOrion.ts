@@ -1,15 +1,15 @@
 export type UpgradeLevels = [number, number, number, number, number, number, number, number, number];
 
+const state = reactive({
+  levels: [0, 0, 0, 0, 0, 0, 0, 0, 0] as UpgradeLevels,
+  currentFeathers: 0,
+  shinyCount: 0,
+  goGoOwl: 0,
+  gambitBonus: 0,
+});
+
 export const useOrion = () => {
   const { formatNumber } = useFormatters();
-
-  const state = reactive({
-    levels: [0, 0, 0, 0, 0, 0, 0, 0, 0] as UpgradeLevels,
-    currentFeathers: 0,
-    shinyCount: 0,
-    goGoOwl: 0,
-    gambitBonus: 0,
-  });
 
   const UPGRADE_NAMES = [
     "Feather Generation", "Bonuses of Orion", "Feather Multiplier",
