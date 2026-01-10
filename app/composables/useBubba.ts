@@ -6,13 +6,13 @@ const state = reactive({
   charismaLvs: [0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number],
   emulsifiedIndices: [] as number[],
   selectedGifts: [-1, -1],
-  diceValues: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] as number[],
+  diceValues: [0, 0, 0, 0, 0, 0, 0, 0] as number[],
   smokerValues: [0, 0, 0, 0, 0] as number[],
+  coinValues: [0, 0, 0, 0] as [number, number, number, number],
   currentMeat: 0,
   activePats: 0,
   patsPerHour: 0,
   poppyFishPower: 0,
-  coinsFound: 0,
 });
 
 export const useBubba = () => {
@@ -22,7 +22,7 @@ export const useBubba = () => {
 
   const diceStats = computed(() => {
     const isSooshi = (state.levels[8] ?? 0) >= 5;
-    const count = 1 + (isSooshi ? 1 : 0) + (state.levels[14] ?? 0);
+    const count = Math.min(8, 1 + (isSooshi ? 1 : 0) + (state.levels[14] ?? 0));
     const sides = 6 + (isSooshi ? 5 : 0) + (state.levels[16] ?? 0);
     return { count, sides };
   });
@@ -53,15 +53,22 @@ export const useBubba = () => {
     const getEmulsifyFact = (idx: number) => (isMF6 && state.emulsifiedIndices.includes(idx)) ? 3 : 1;
     return {
       hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
-      rizzDisc: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
-      joy: (1 + ((lvs[2] ?? 0) * 0.05 * 1.2 * superChartBonus)) * getEmulsifyFact(2),
-      mindful: 0.1 * (lvs[4] ?? 0) * superChartBonus * getEmulsifyFact(4)
+      rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
+      joy: 1 + ((lvs[2] ?? 0) * 0.05 * superChartBonus * getEmulsifyFact(2)),
+      courage: (lvs[3] ?? 0) * superChartBonus * getEmulsifyFact(3),
+      mindful: 0.1 * (lvs[4] ?? 0) * superChartBonus * getEmulsifyFact(4),
+      savvy: (lvs[5] ?? 0) * superChartBonus * getEmulsifyFact(5)
     };
   });
 
   const smokerMulti = computed(() => {
     const rates = [0.02, 0.03, 0.04, 0.06, 0.10];
     return state.smokerValues.reduce((acc, val, i) => acc * (1 + (val ?? 0) * (rates[i] ?? 0)), 1);
+  });
+
+  const spareCoinsMulti = computed(() => {
+    const [c1, c2, c3, c4] = state.coinValues;
+    return 1 + (c1 + 5 * c2 + 25 * c3 + 100 * c4) / 100;
   });
 
   const maxPats = computed(() => {
@@ -79,7 +86,7 @@ export const useBubba = () => {
     if (hPerPat <= 0) return 0;
 
     const peakBoost = getHMultFromHappiness(hPerPat) - 1;
-    const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.2;
+    const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.1;
     const baseMeatPerSec = getMeatGen(state.levels, 1) / 60;
 
     return baseMeatPerSec * effectiveSeconds;
@@ -114,11 +121,11 @@ export const useBubba = () => {
   });
 
   const getCostReduction = (levels: BubbaLevels) => {
-    const rizzDisc = charismaBonuses.value.rizzDisc;
+    const rizz = charismaBonuses.value.rizz;
     const bargainDisc = 1 - 1 / (1 + 0.01 * (levels[4] ?? 0));
     const costSaverDisc = 1 - 1 / (1 + 0.02 * (levels[18] ?? 0));
     const permaSaleDisc = 1 - 1 / (1 + 0.04 * (levels[26] ?? 0));
-    return (1 - rizzDisc) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc);
+    return (1 - rizz) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc);
   };
 
   const getUpgradeCost = (index: number, lv: number, offset: number, prodLevels: BubbaLevels) => {
@@ -141,7 +148,7 @@ export const useBubba = () => {
     const totalLv = levels.reduce((a, b) => a + b, 0);
     const mf1Mult = (levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
     const poppyMult = 1 + ((levels[24] ?? 0) * 0.05 * state.poppyFishPower);
-    const coinsMult = 1 + (state.coinsFound * ((levels[21] ?? 0) / 100));
+    const coinsMult = spareCoinsMulti.value * (1 + (levels[21] ?? 0) / 100);
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((levels[17] ?? 0) / 100)) : 1;
 
     return baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
@@ -289,5 +296,5 @@ export const useBubba = () => {
     });
   });
 
-  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush };
+  return { state, meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush };
 };

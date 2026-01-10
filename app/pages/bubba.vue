@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue';
-
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush } = useBubba();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
@@ -106,11 +104,11 @@ const radarPoints = computed(() => {
 
 const charismaChartData = [
   { id: 'I', name: 'HUSTLE', bonus: (b: any) => `${b.hustle.toFixed(2)}x` },
-  { id: 'II', name: 'RIZZ', bonus: (b: any) => `-${(b.rizzDisc * 100).toFixed(1)}% Cost` },
+  { id: 'II', name: 'RIZZ', bonus: (b: any) => `-${(b.rizz * 100).toFixed(1)}% Cost` },
   { id: 'III', name: 'JOY', bonus: (b: any) => `${b.joy.toFixed(2)}x Happiness` },
-  { id: 'IV', name: 'COURAGE', bonus: () => `+0% Dice Luk` },
+  { id: 'IV', name: 'COURAGE', bonus: (b: any) => `+${b.courage}% Dice Luk` },
   { id: 'V', name: 'MINDFUL', bonus: (b: any) => `+${b.mindful.toFixed(0)}% 2x LVs` },
-  { id: 'VI', name: 'SAVVY', bonus: () => `+0% Coins` },
+  { id: 'VI', name: 'SAVVY', bonus: (b: any) => `+${b.savvy}% Coins` },
 ];
 
 const cycleDiceValue = (idx: number, direction: number) => {
@@ -186,7 +184,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
             <div v-for="n in Math.min(diceStats.count, state.diceValues.length)" :key="n" class="die-slot">
               <button @click="cycleDiceValue(n-1, 1)" class="pat-btn">▲</button>
               <div class="die-img-box">
-                <img v-if="state.diceValues[n-1] > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`" class="die-icon" />
+                <img v-if="state.diceValues[n-1] > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`"/>
                 <span v-else class="none-text">NONE</span>
               </div>
               <button @click="cycleDiceValue(n-1, -1)" class="pat-btn">▼</button>
@@ -208,6 +206,32 @@ const cycleDiceValue = (idx: number, direction: number) => {
           </div>
           <div class="meter-footer">
             <span>Multi: {{ smokerMulti.toFixed(2) }}x</span>
+            <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
+          </div>
+        </div>
+
+        <div class="bonus-box coins-container">
+          <div class="gifts-label">SPARE COINS</div>
+          <div class="coins-grid">
+            <div class="coin-row">
+              <span class="coin-label coin-copper">PENNIES</span>
+              <input type="number" v-model.number="state.coinValues[0]" class="coin-input" min="0" />
+            </div>
+            <div class="coin-row">
+              <span class="coin-label coin-white">NICKELS</span>
+              <input type="number" v-model.number="state.coinValues[1]" class="coin-input" min="0" />
+            </div>
+            <div class="coin-row">
+              <span class="coin-label coin-silver">QUARTERS</span>
+              <input type="number" v-model.number="state.coinValues[2]" class="coin-input" min="0" />
+            </div>
+            <div class="coin-row">
+              <span class="coin-label coin-gold">DOLLARS</span>
+              <input type="number" v-model.number="state.coinValues[3]" class="coin-input" min="0" />
+            </div>
+          </div>
+          <div class="meter-footer">
+            <span>Multi: {{ spareCoinsMulti.toFixed(2) }}x</span>
             <img src="/bubba/meat-icon.png" class="meat-mini-icon footer-icon" />
           </div>
         </div>
@@ -368,10 +392,10 @@ const cycleDiceValue = (idx: number, direction: number) => {
   flex-wrap: wrap;
 }
 .happiness-meter {
-  width: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-left: 10px;
 }
 .meter-title {
   font-weight: 900;
@@ -467,7 +491,6 @@ const cycleDiceValue = (idx: number, direction: number) => {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 150px;
   text-align: center;
 }
 .dice-container {
@@ -482,6 +505,7 @@ const cycleDiceValue = (idx: number, direction: number) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1px;
 }
 .die-slot {
   display: flex;
@@ -490,19 +514,14 @@ const cycleDiceValue = (idx: number, direction: number) => {
   gap: 4px;
 }
 .die-img-box {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   background: #030712;
   border: 2px solid #1e293b;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.die-icon {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
 }
 .gifts-label {
   font-weight: 900;
@@ -523,8 +542,8 @@ const cycleDiceValue = (idx: number, direction: number) => {
   gap: 4px;
 }
 .gift-img-box {
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   background: #030712;
   border: 2px solid #1e293b;
   border-radius: 8px;
@@ -571,6 +590,57 @@ const cycleDiceValue = (idx: number, direction: number) => {
   font-family: inherit;
   font-size: 0.8rem;
   height: 24px;
+  padding: 0;
+  outline: none;
+}
+.coins-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.coins-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 97px;
+  justify-content: center;
+}
+.coin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.coin-label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  min-width: 70px;
+}
+.coin-copper {
+  color: #CD7F32;
+}
+.coin-white {
+  color: #FFFFFF;
+}
+.coin-silver {
+  color: #C0C0C0;
+}
+.coin-gold {
+  color: #FFD700;
+}
+.coin-input {
+  width: 50px;
+  background: #030712;
+  border: 1px solid #334155;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: inherit;
+  font-size: 0.8rem;
+  height: 20px;
   padding: 0;
   outline: none;
 }
