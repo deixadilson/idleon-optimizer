@@ -16,10 +16,10 @@ watch(isModalOpen, (val) => {
 const importJson = () => {
   try {
     const rawData = JSON.parse(jsonInput.value);
-    
+
     let bubbaDataRaw = null;
     const bObj = rawData.data || rawData;
-    
+
     if (bObj.bubba || bObj.Bubba) {
       bubbaDataRaw = bObj.bubba || bObj.Bubba;
     } else if (bObj.cloudData?.bubba) {
@@ -30,18 +30,18 @@ const importJson = () => {
 
     if (bubbaDataRaw) {
       const b = typeof bubbaDataRaw === 'string' ? JSON.parse(bubbaDataRaw) : bubbaDataRaw;
-      
+
       if (b[0] && Array.isArray(b[0])) {
         bubbaState.currentMeat = parseFloat(b[0][0]) || 0;
         if (b[0][2] !== undefined) bubbaState.selectedGifts[0] = parseInt(b[0][2]) - 1;
         if (b[0][3] !== undefined) bubbaState.selectedGifts[1] = parseInt(b[0][3]) - 1;
       }
-      
+
       if (b[1] && b[2] && Array.isArray(b[1]) && Array.isArray(b[2])) {
         bubbaState.levels = b[1].map((v: any, i: number) => (parseInt(v) || 0) + (parseInt(b[2][i]) || 0));
         bubbaState.mindfulOffsets = b[2].map((v: any) => parseInt(v) || 0);
       }
-      
+
       if (b[3] && Array.isArray(b[3])) {
         bubbaState.charismaLvs = [...b[3]].map(v => parseInt(v) || 0) as [number, number, number, number, number, number];
       }
@@ -66,7 +66,7 @@ const importJson = () => {
 
       if (foundIndex === -1) {
         for (let i = 0; i < optLacc.length - 12; i++) {
-          if (optLacc[i] === 1 && optLacc[i+1] === 26 && optLacc[i+2] === 1 && optLacc[i+3] === 1 && 
+          if (optLacc[i] === 1 && optLacc[i+1] === 26 && optLacc[i+2] === 1 && optLacc[i+3] === 1 &&
               optLacc[i+4] === 1 && optLacc[i+5] === 1 && optLacc[i+6] === 1 && optLacc[i+7] === 1) {
             foundIndex = i + 8;
             break;
@@ -101,11 +101,18 @@ const importJson = () => {
   <div class="app-container">
     <header class="global-header">
       <div class="header-content">
+        <NuxtLink to="/" class="logo">🎮 IDLEON TOOLS</NuxtLink>
         <nav class="main-nav">
-          <NuxtLink to="/orion" class="nav-link">Orion</NuxtLink>
-          <NuxtLink to="/bubba" class="nav-link">Bubba</NuxtLink>
+          <NuxtLink to="/bubba" class="nav-link">
+            <img src="/bubba/meat-icon.png" class="nav-icon" />
+            <span>Bubba</span>
+          </NuxtLink>
+          <NuxtLink to="/orion" class="nav-link">
+            <img src="/orion/mf-1.png" class="nav-icon" />
+            <span>Orion</span>
+          </NuxtLink>
         </nav>
-        <button @click="isModalOpen = true" class="import-btn">IMPORT JSON</button>
+        <button @click="isModalOpen = true" class="import-btn">📥 IMPORT</button>
       </div>
     </header>
 
@@ -132,8 +139,12 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
 .global-header {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
-  background: #0c0c16;
+  padding: 12px 20px;
+  background: #111827;
+  border-bottom: 1px solid #1e293b;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .header-content {
@@ -143,33 +154,68 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
   align-items: center;
 }
 
-.main-nav { display: flex; gap: 30px; }
-
-.nav-link {
+.logo {
   color: #38bdf8;
   text-decoration: none;
   font-weight: 900;
-  font-size: 1rem;
-  text-transform: uppercase;
-  padding: 4px 0;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
 }
 
-.nav-link:hover { filter: brightness(1.2); }
-.router-link-active { border-bottom: 2px solid #38bdf8; }
+.logo:hover { filter: brightness(1.2); }
+
+.main-nav { display: flex; gap: 8px; }
+
+.nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: 1px solid transparent;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.nav-link:hover {
+  background: #1e293b;
+  color: #fff;
+}
+
+.nav-link.router-link-active {
+  background: #1e293b;
+  color: #38bdf8;
+  border-color: #334155;
+}
 
 .import-btn {
-  background: transparent;
+  background: #1e293b;
   border: 1px solid #334155;
   color: #94a3b8;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
   font-family: inherit;
   font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
 
-.import-btn:hover { background: #1e293b; color: white; }
+.import-btn:hover { background: #334155; color: white; }
 
 .modal-overlay {
   position: fixed;
