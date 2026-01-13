@@ -58,14 +58,21 @@ export const useFormatters = () => {
     if (seconds <= 0) return "Ready!";
     if (seconds === Infinity || isNaN(seconds)) return "∞";
 
-    const years = Math.round(seconds / (3600 * 24 * 365));
+    const years = Math.floor(seconds / (3600 * 24 * 365));
     if (years > 100000000) return "Million ages";
 
-    const months = Math.round((seconds % (3600 * 24 * 365)) / (3600 * 24 * 30));
-    const days = Math.round((seconds % (3600 * 24 * 30)) / (3600 * 24));
-    const hours = Math.round((seconds % (3600 * 24)) / 3600);
-    const mins = Math.round((seconds % 3600) / 60);
-    const secs = Math.round(seconds % 60);
+    let rem = seconds % (3600 * 24 * 365);
+    const months = Math.floor(rem / (3600 * 24 * 30));
+
+    rem = rem % (3600 * 24 * 30);
+    const days = Math.floor(rem / (3600 * 24));
+
+    rem = rem % (3600 * 24);
+    const hours = Math.floor(rem / 3600);
+
+    rem = rem % 3600;
+    const mins = Math.floor(rem / 60);
+    const secs = Math.floor(rem % 60);
 
     const parts = [];
     if (years > 0) parts.push(`${years}y`);

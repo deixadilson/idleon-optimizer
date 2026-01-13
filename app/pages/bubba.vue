@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation } = useBubba();
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
@@ -118,6 +118,62 @@ const cycleDiceValue = (idx: number, direction: number) => {
   if (val > diceStats.value.sides) val = 0;
   state.diceValues[idx] = val;
 };
+const isMegaPushConfigOpen = ref(false);
+const clickTestActive = ref(false);
+const clickTestCount = ref(0);
+const clickTestTimeLeft = ref(0);
+let clickTimer: any = null;
+
+const clickTestCooldown = ref(false);
+
+const startClickTest = () => {
+  if (clickTestActive.value || clickTestCooldown.value) return;
+  clickTestActive.value = true;
+  clickTestCount.value = 0;
+  clickTestTimeLeft.value = 1.0;
+  
+  const startTime = Date.now();
+  clickTimer = setInterval(() => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    clickTestTimeLeft.value = Math.max(0, 1.0 - elapsed);
+    if (clickTestTimeLeft.value <= 0) {
+      clearInterval(clickTimer);
+      clickTestActive.value = false;
+      state.megaPushConfig.clicksPerSecond = clickTestCount.value;
+      clickTestCooldown.value = true;
+      setTimeout(() => {
+        clickTestCooldown.value = false;
+      }, 500);
+    }
+  }, 50);
+};
+
+const recordClick = () => {
+  if (clickTestActive.value) {
+    clickTestCount.value++;
+    state.megaPushConfig.clicksPerSecond = clickTestCount.value;
+  } else if (!clickTestCooldown.value) {
+      startClickTest();
+      clickTestCount.value++;
+      state.megaPushConfig.clicksPerSecond = clickTestCount.value;
+  }
+};
+
+watch(() => state.megaPushConfig.emulsifyHustleAfter, (val) => {
+  if (val) state.megaPushConfig.emulsifyRizzAfter = false;
+});
+watch(() => state.megaPushConfig.emulsifyRizzAfter, (val) => {
+  if (val) state.megaPushConfig.emulsifyHustleAfter = false;
+});
+
+watch(isMegaPushConfigOpen, (isOpen) => {
+  if (isOpen) {
+    if (state.megaPushConfig.patsUsed === 0) {
+      state.megaPushConfig.patsUsed = maxPats.value;
+    }
+    state.megaPushConfig.giftsUsed = openGiftMegaPush.value.count;
+  }
+});
 </script>
 
 <template>
@@ -249,8 +305,13 @@ const cycleDiceValue = (idx: number, direction: number) => {
           </div>
           <div v-if="state.selectedGifts.includes(0)" class="strat-item">
             <span class="strat-label">Mega Push Value:</span>
-            <span class="strat-val">{{ formatNumber(openGiftMegaPush.yield) }}</span>
-            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="strat-val" :class="{ 'mp-better': (state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) > target.cost }">
+                {{ formatNumber(state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) }}
+              </span>
+              <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+              <button class="gear-btn" @click="isMegaPushConfigOpen = true" title="Configure Mega Push">⚙️</button>
+            </div>
           </div>
         </div>
       </div>
@@ -340,6 +401,67 @@ const cycleDiceValue = (idx: number, direction: number) => {
           <button @click="isHelpOpen = false" class="btn-close-help">GOT IT!</button>
         </div>
       </div>
+
+      <div v-if="isMegaPushConfigOpen" class="modal-overlay" @click.self="isMegaPushConfigOpen = false">
+        <div class="help-modal-box mega-push-modal">
+          <h2>Configure Mega Push Strategy</h2>
+          <p class="modal-subtitle">Simulate realistic execution time and happiness decay for accurate Mega Push yield estimation.</p>
+
+          <div class="mp-grid">
+            <div class="mp-col">
+              <label>Total Pats Used</label>
+              <input type="number" v-model.number="state.megaPushConfig.patsUsed" class="styled-input full-width" />
+              <div class="mp-info-sub">Max Happiness Multi: {{ megaPushSimulation.maxHMult.toFixed(2) }}x</div>
+            </div>
+            <div class="mp-col">
+              <label>Open Gifts Used</label>
+              <input type="number" v-model.number="state.megaPushConfig.giftsUsed" class="styled-input full-width" />
+              <div class="mp-info-sub">Max Profitable Open Gifts: {{ formatNumber(megaPushSimulation.optimalGifts) }}</div>
+            </div>
+          </div>
+          
+          <div class="mp-section">
+             <div class="mp-dual-row">
+                <div class="mp-dual-col">
+                   <label>Mouse Movement Speed</label>
+                   <select v-model="state.megaPushConfig.mouseSpeed" class="styled-select big-select">
+                      <option value="slow">Slow (1s)</option>
+                      <option value="medium">Medium (0.5s)</option>
+                      <option value="fast">Fast (0.2s)</option>
+                      <option value="instant">Instant (0s)</option>
+                   </select>
+                </div>
+                <div class="mp-dual-col">
+                   <label>Click Speed</label>
+                   <div class="cps-tester-row">
+                      <span class="cps-label-text">Clicks/sec:</span>
+                      <input type="number" v-model.number="state.megaPushConfig.clicksPerSecond" class="styled-input" style="width: 60px;" />
+                      <button class="cps-btn" @mousedown="recordClick" :class="{ 'active': clickTestActive, 'disabled': clickTestCooldown }" :disabled="clickTestCooldown">
+                         {{ clickTestCooldown ? 'wait...' : (clickTestActive ? (clickTestTimeLeft.toFixed(1) + 's') : 'CLICK TEST') }}
+                      </button>
+                   </div>
+                   <div v-if="state.megaPushConfig.patsUsed > maxPats / 2" class="mp-hint" style="margin-top: 5px;">
+                      Start giving pats {{ (maxPats / 2 / state.megaPushConfig.clicksPerSecond).toFixed(1) }}s before reset.
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <div class="mp-section checkboxes">
+             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyJoyBefore" /> Emulsify JOY before starting pats</label>
+             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyHustleAfter" /> Emulsify HUSTLE after pats and before gifts</label>
+             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyRizzAfter" /> Emulsify RIZZ after pats and before gifts</label>
+          </div>
+
+          <div class="mp-result-box">
+             <div class="mp-result-label">SIMULATED YIELD:</div>
+             <div class="mp-result-val">{{ formatNumber(megaPushSimulation.totalYield) }}</div>
+          </div>
+
+          <button @click="isMegaPushConfigOpen = false" class="btn-close-help">SAVE & CLOSE</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -798,6 +920,116 @@ const cycleDiceValue = (idx: number, direction: number) => {
   align-items: center;
   gap: 10px;
 }
+.gear-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0;
+  transition: transform 0.2s;
+}
+.gear-btn:hover {
+  transform: rotate(45deg) scale(1.1);
+}
+.modal-subtitle {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: -15px;
+  margin-bottom: 20px;
+}
+.mp-grid {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.mp-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mp-col label {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.full-width {
+  width: 100%;
+}
+.mp-hint {
+  color: #fbbf24;
+  font-size: 0.75rem;
+}
+.mp-section {
+  background: #0f172a;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+.cps-tester-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-top: 5px;
+}
+.cps-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 100px;
+  height: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.cps-btn.active {
+  background: #f59e0b;
+}
+.cps-display {
+  color: #fff;
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+.styled-select {
+  background: #1e293b;
+  color: white;
+  border: 1px solid #334155;
+  padding: 5px;
+  border-radius: 4px;
+}
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.mp-result-box {
+  background: #111827;
+  border: 2px solid #38bdf8;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.mp-result-label {
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.mp-result-val {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+}
 .attr-roman {
   font-size: 2.2rem;
   min-width: 45px;
@@ -953,5 +1185,155 @@ const cycleDiceValue = (idx: number, direction: number) => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.gear-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  transition: transform 0.2s;
+}
+.gear-btn:hover {
+  transform: rotate(45deg);
+}
+.mp-dual-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.mp-dual-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.big-select {
+  height: 40px;
+  font-size: 1rem;
+  margin-top: 5px;
+  width: 100%;
+}
+.modal-subtitle {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-top: -15px;
+  margin-bottom: 20px;
+}
+.mp-grid {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.mp-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.mp-col label {
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.full-width {
+  width: 100%;
+}
+.mp-hint {
+  color: #fbbf24;
+  font-size: 0.75rem;
+}
+.mp-section {
+  background: #0f172a;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+.cps-tester-row {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-top: 5px;
+}
+.cps-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  width: 100px;
+  height: 40px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.cps-btn.active {
+  background: #f59e0b;
+}
+.cps-btn.disabled {
+  background: #64748b;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.cps-display {
+  color: #fff;
+  font-size: 1.1rem;
+}
+.cps-label-text {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+.styled-select {
+  background: #1e293b;
+  color: white;
+  border: 1px solid #334155;
+  padding: 5px;
+  border-radius: 4px;
+}
+.mp-info-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.mp-better {
+  color: #10b981;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+.mp-debug-info {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: monospace;
+}
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.mp-result-box {
+  background: #111827;
+  border: 2px solid #38bdf8;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.mp-result-label {
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.mp-result-val {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 </style>
