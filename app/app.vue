@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import { inject } from '@vercel/analytics';
 const { state: bubbaState } = useBubba();
 const { state: orionState } = useOrion();
 const isModalOpen = ref(false);
 const jsonInput = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+  
+if (import.meta.client) {
+  inject();
+}
 
 watch(isModalOpen, (val) => {
   if (val) {

@@ -2,7 +2,7 @@ export const useFormatters = () => {
   const formatNumber = (num: number): string => {
     const absx = Math.abs(num);
     if (absx === 0) return "0";
-    if (absx < 1e6) return num.toLocaleString('en-US');
+    if (absx < 1e6) return Math.round(num).toLocaleString('en-US');
 
     const suffixes = ["M", "B", "T", "Q", "QQ", "QQQ"];
     const exponent = Math.floor(Math.log10(absx) + 1e-10);

@@ -94,10 +94,21 @@ export const useBubba = () => {
     const hPerPat = (state.levels[1] ?? 0) * joyMulti * giftHappyMult;
     if (hPerPat <= 0) return 0;
 
-    const peakBoost = getHMultFromHappiness(hPerPat) - 1;
-    const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.1;
-    const baseMeatPerSec = getMeatGen(state.levels, 1) / 60;
+    let effectiveSeconds = 0;
+    let simH = hPerPat;
+    const dt = 0.2;
+    let steps = 0;
+    while (simH > 0 && steps < 5000) {
+      const bonus = getHMultFromHappiness(simH) - 1;
+      effectiveSeconds += bonus * dt;
 
+      const decay = getDecayRate(simH);
+      const drop = decay * dt;
+      simH = Math.max(0, simH - drop);
+      steps++;
+    }
+
+    const baseMeatPerSec = getMeatGen(state.levels, 1) / 60;
     return baseMeatPerSec * effectiveSeconds;
   });
 
@@ -106,8 +117,7 @@ export const useBubba = () => {
   });
 
   const getDecayRate = (h: number) => {
-    const m = getHMultFromHappiness(h);
-    return m * (1 + (m - 1) / 45);
+    return Math.max(1, h / 13);
   };
 
   const calculateOptimalGifts = (startH: number, cps: number, baseMeatRate: number, currentLevels: BubbaLevels, currentOffsets: BubbaLevels) => {
@@ -487,19 +497,19 @@ export const useBubba = () => {
 
           const joyWeight = state.patsPerHour / 5;
           const totalAccountLevels = state.levels.reduce((a, b) => a + b, 0);
-          const mindfulWeight = 2.0 * Math.max(0.1, 1 - (totalAccountLevels / 2300));
+          const mindfulWeight = 2 * Math.max(0.1, 1 - (totalAccountLevels / 2300));
           const isMF6 = (state.levels[8] ?? 0) >= 6;
           const getEmulsifyDivisor = (idx: number) => (isMF6 && state.emulsifiedIndices.includes(idx)) ? 3 : 1;
           const weights = [
             1.0 / getEmulsifyDivisor(0),
-            1.2 / getEmulsifyDivisor(1),
-            0.8 * joyWeight,
+            0.2 / getEmulsifyDivisor(1),
+            0.5 * joyWeight,
             0,
             1.5 * mindfulWeight,
             0
           ];
 
-          const usefulIndices = [0, 1, 2, 4]; // Hustle, Rizz, Joy, Mindful
+          const usefulIndices = [0, 1, 2, 4];
           const remLevels = usefulIndices.reduce((acc, idx) => acc + Math.max(0, 120 - (state.charismaLvs[idx] ?? 0)), 0);
 
           const activeWeightSum = usefulIndices.reduce((acc, idx) => acc + (weights[idx] ?? 0), 0);
@@ -517,7 +527,7 @@ export const useBubba = () => {
           const currentSpeed = (1 + 0.05 * charLv) * numbahsMult;
           const nextSpeed = (1 + 0.05 * (charLv + 1)) * numbahsMult;
 
-          timeSaved = weightedDistance * (1 / currentSpeed - 1 / nextSpeed);
+          timeSaved = weightedDistance * (1 / currentSpeed - 1 / nextSpeed) * 50;
           efficiency = cost > 0 ? timeSaved / cost : 0;
         }
       }
