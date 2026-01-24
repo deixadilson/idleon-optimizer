@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation } = useBubba();
+const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation, UPGRADE_NAMES } = useBubba();
+const activeSettingsTab = ref('strategy');
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
 const meatInputDisplay = ref("");
@@ -174,6 +175,12 @@ watch(isMegaPushConfigOpen, (isOpen) => {
     state.megaPushConfig.giftsUsed = openGiftMegaPush.value.count;
   }
 });
+
+const recommendedUpgrades = computed(() => {
+  return UPGRADE_NAMES
+    .map((name, idx) => ({ name, idx }))
+    .filter(({ idx }) => idx !== 8 && !MINDFUL_RESTRICTED.includes(idx));
+});
 </script>
 
 <template>
@@ -293,27 +300,27 @@ watch(isMegaPushConfigOpen, (isOpen) => {
         </div>
  
         <div class="strategy-bar">
-          <div class="strat-item">
-            <span class="strat-label">Pat Value:</span>
-            <span class="strat-val">{{ formatNumber(meatPerPat) }}</span>
-            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
-          </div>
-          <div class="strat-item">
-            <span class="strat-label">Time Skip Value:</span>
-            <span class="strat-val">{{ formatNumber(twoHourSkip) }}</span>
-            <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
-          </div>
-          <div v-if="state.selectedGifts.includes(0)" class="strat-item">
-            <span class="strat-label">Mega Push Value:</span>
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <span class="strat-val" :class="{ 'mp-better': (state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) > target.cost }">
-                {{ formatNumber(state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) }}
-              </span>
+            <div class="strat-item">
+              <span class="strat-label">Pat Value:</span>
+              <span class="strat-val">{{ formatNumber(meatPerPat) }}</span>
               <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
-              <button class="gear-btn" @click="isMegaPushConfigOpen = true" title="Configure Mega Push">⚙️</button>
             </div>
+            <div class="strat-item">
+              <span class="strat-label">Time Skip Value:</span>
+              <span class="strat-val">{{ formatNumber(twoHourSkip) }}</span>
+              <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+            </div>
+            <div v-if="state.selectedGifts.includes(0)" class="strat-item">
+              <span class="strat-label">Mega Push Value:</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="strat-val" :class="{ 'mp-better': (state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) > target.cost }">
+                  {{ formatNumber(state.megaPushConfig.patsUsed > 0 ? megaPushSimulation.totalYield : openGiftMegaPush.yield) }}
+                </span>
+                <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
+              </div>
+            </div>
+            <button class="gear-btn" @click="isMegaPushConfigOpen = true" title="Configure Mega Push">⚙️</button>
           </div>
-        </div>
       </div>
 
       <div class="settings-bar">
@@ -404,58 +411,79 @@ watch(isMegaPushConfigOpen, (isOpen) => {
 
       <div v-if="isMegaPushConfigOpen" class="modal-overlay" @click.self="isMegaPushConfigOpen = false">
         <div class="help-modal-box mega-push-modal">
-          <h2>Configure Mega Push Strategy</h2>
-          <p class="modal-subtitle">Simulate realistic execution time and happiness decay for accurate Mega Push yield estimation.</p>
+          <div class="modal-tabs">
+            <button class="tab-btn" @click="activeSettingsTab = 'strategy'" :class="{ active: activeSettingsTab === 'strategy' }">Mega Push Strategy Configuration</button>
+            <button class="tab-btn" @click="activeSettingsTab = 'weights'" :class="{ active: activeSettingsTab === 'weights' }">Upgrade Weights Configuration</button>
+          </div>
 
-          <div class="mp-grid">
-            <div class="mp-col">
-              <label>Total Pats Used</label>
-              <input type="number" v-model.number="state.megaPushConfig.patsUsed" class="styled-input full-width" />
-              <div class="mp-info-sub">Max Happiness Multi: {{ megaPushSimulation.maxHMult.toFixed(2) }}x</div>
+          <div v-if="activeSettingsTab === 'strategy'">
+            <p class="modal-subtitle">Simulate realistic execution time and happiness decay for accurate Mega Push yield estimation.</p>
+
+            <div class="mp-grid">
+              <div class="mp-col">
+                <label>Total Pats Used</label>
+                <input type="number" v-model.number="state.megaPushConfig.patsUsed" class="styled-input full-width" />
+                <div class="mp-info-sub">Max Happiness Multi: {{ megaPushSimulation.maxHMult.toFixed(2) }}x</div>
+              </div>
+              <div class="mp-col">
+                <label>Open Gifts Used</label>
+                <input type="number" v-model.number="state.megaPushConfig.giftsUsed" class="styled-input full-width" />
+                <div class="mp-info-sub">Max Profitable Open Gifts: {{ formatNumber(megaPushSimulation.optimalGifts) }}</div>
+              </div>
             </div>
-            <div class="mp-col">
-              <label>Open Gifts Used</label>
-              <input type="number" v-model.number="state.megaPushConfig.giftsUsed" class="styled-input full-width" />
-              <div class="mp-info-sub">Max Profitable Open Gifts: {{ formatNumber(megaPushSimulation.optimalGifts) }}</div>
+            
+            <div class="mp-section">
+               <div class="mp-dual-row">
+                  <div class="mp-dual-col">
+                     <label>Mouse Movement Speed</label>
+                     <select v-model="state.megaPushConfig.mouseSpeed" class="styled-select big-select">
+                        <option value="slow">Slow (1s)</option>
+                        <option value="medium">Medium (0.5s)</option>
+                        <option value="fast">Fast (0.2s)</option>
+                        <option value="instant">Instant (0s)</option>
+                     </select>
+                  </div>
+                  <div class="mp-dual-col">
+                     <label>Click Speed</label>
+                     <div class="cps-tester-row">
+                        <span class="cps-label-text">Clicks/sec:</span>
+                        <input type="number" v-model.number="state.megaPushConfig.clicksPerSecond" class="styled-input" style="width: 60px;" />
+                        <button class="cps-btn" @mousedown="recordClick" :class="{ 'active': clickTestActive, 'disabled': clickTestCooldown }" :disabled="clickTestCooldown">
+                           {{ clickTestCooldown ? 'wait...' : (clickTestActive ? (clickTestTimeLeft.toFixed(1) + 's') : 'CLICK TEST') }}
+                        </button>
+                     </div>
+                     <div v-if="state.megaPushConfig.patsUsed > maxPats / 2" class="mp-hint" style="margin-top: 5px;">
+                        Start giving pats {{ (maxPats / 2 / state.megaPushConfig.clicksPerSecond).toFixed(1) }}s before reset.
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            <div class="mp-section checkboxes">
+               <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyJoyBefore" /> Emulsify JOY before starting pats</label>
+               <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyHustleAfter" /> Emulsify HUSTLE after pats and before gifts</label>
+               <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyRizzAfter" /> Emulsify RIZZ after pats and before gifts</label>
+            </div>
+
+            <div class="mp-result-box">
+               <div class="mp-result-label">SIMULATED YIELD:</div>
+               <div class="mp-result-val">{{ formatNumber(megaPushSimulation.totalYield) }}</div>
             </div>
           </div>
-          
-          <div class="mp-section">
-             <div class="mp-dual-row">
-                <div class="mp-dual-col">
-                   <label>Mouse Movement Speed</label>
-                   <select v-model="state.megaPushConfig.mouseSpeed" class="styled-select big-select">
-                      <option value="slow">Slow (1s)</option>
-                      <option value="medium">Medium (0.5s)</option>
-                      <option value="fast">Fast (0.2s)</option>
-                      <option value="instant">Instant (0s)</option>
-                   </select>
-                </div>
-                <div class="mp-dual-col">
-                   <label>Click Speed</label>
-                   <div class="cps-tester-row">
-                      <span class="cps-label-text">Clicks/sec:</span>
-                      <input type="number" v-model.number="state.megaPushConfig.clicksPerSecond" class="styled-input" style="width: 60px;" />
-                      <button class="cps-btn" @mousedown="recordClick" :class="{ 'active': clickTestActive, 'disabled': clickTestCooldown }" :disabled="clickTestCooldown">
-                         {{ clickTestCooldown ? 'wait...' : (clickTestActive ? (clickTestTimeLeft.toFixed(1) + 's') : 'CLICK TEST') }}
-                      </button>
-                   </div>
-                   <div v-if="state.megaPushConfig.patsUsed > maxPats / 2" class="mp-hint" style="margin-top: 5px;">
-                      Start giving pats {{ (maxPats / 2 / state.megaPushConfig.clicksPerSecond).toFixed(1) }}s before reset.
-                   </div>
-                </div>
-             </div>
-          </div>
 
-          <div class="mp-section checkboxes">
-             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyJoyBefore" /> Emulsify JOY before starting pats</label>
-             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyHustleAfter" /> Emulsify HUSTLE after pats and before gifts</label>
-             <label class="cb-row"><input type="checkbox" v-model="state.megaPushConfig.emulsifyRizzAfter" /> Emulsify RIZZ after pats and before gifts</label>
-          </div>
-
-          <div class="mp-result-box">
-             <div class="mp-result-label">SIMULATED YIELD:</div>
-             <div class="mp-result-val">{{ formatNumber(megaPushSimulation.totalYield) }}</div>
+          <div v-else-if="activeSettingsTab === 'weights'" class="weights-tab">
+            <p class="modal-subtitle">Customize recommendation priority. Weight 0 disables an upgrade recommendation. Weight 0.5 reduces priority by half.</p>
+            
+            <div class="weights-list">
+              <div v-for="upg in recommendedUpgrades" :key="upg.idx" class="weight-item">
+                <div class="weight-label-row">
+                  <img :src="`/bubba/upg-${upg.idx}.png`" />
+                  <span class="weight-name">{{ upg.name }}</span>
+                  <span class="weight-val">{{ (state.upgradeWeights[upg.idx] || 0).toFixed(2) }}</span>
+                </div>
+                <input type="range" v-model.number="state.upgradeWeights[upg.idx]" min="0" max="1" step="0.05" class="weight-slider" />
+              </div>
+            </div>
           </div>
 
           <button @click="isMegaPushConfigOpen = false" class="btn-close-help">SAVE & CLOSE</button>
@@ -467,873 +495,153 @@ watch(isMegaPushConfigOpen, (isOpen) => {
 </template>
 
 <style scoped>
-.bubba-page {
-  padding: 20px;
-  display: flex;
-  justify-content: center;
-}
-.main-width-wrapper {
-  width: 1120px;
-}
-.strategy-bar {
-  display: flex;
-  justify-content: space-around;
-  gap: 20px;
-  border-top: 1px solid #1e293b;
-  padding-top: 20px;
-  width: 100%;
-  margin-top: 10px;
-  align-items: center;
-}
-.strat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.strat-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-.strat-val {
-  font-size: 1rem;
-  font-weight: 900;
-  color: #fff;
-}
-.bonus-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 25px;
-  background: #111827;
-  padding: 20px;
-  border-radius: 12px;
-  border: 1px solid #1e293b;
-  align-items: center;
-  width: 100%;
-  flex-wrap: wrap;
-}
-.happiness-meter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-left: 10px;
-}
-.meter-title {
-  font-weight: 900;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
-  text-shadow: 1px 1px 0 #000;
-  text-align: center;
-}
-.meter-main {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  justify-content: center;
-  height: 100px;
-  width: 100%;
-}
-.meter-bar {
-  width: 22px;
-  height: 100%;
-  background: #030712;
-  border: 2px solid #334155;
-  border-radius: 4px;
-  display: flex;
-  align-items: flex-end;
-  overflow: hidden;
-}
-.meter-fill {
-  width: 100%;
-  transition: height 0.3s ease;
-}
-.pat-label-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin: 4px 0;
-}
-.pat-label-small {
-  font-size: 0.65rem;
-  color: #94a3b8;
-  font-weight: 900;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.pat-val {
-  font-size: 1.4rem;
-  font-weight: 900;
-  text-align: center;
-  line-height: 1.1;
-  color: #fff;
-}
-.pat-btn {
-  background: #1f2937;
-  color: white;
-  border: 1px solid #374151;
-  cursor: pointer;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  width: 30px;
-}
-.meter-footer {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  color: #38bdf8;
-}
-.footer-icon {
-  vertical-align: middle;
-  width: 18px;
-  height: 18px;
-}
-.radar-label {
-  fill: #38bdf8;
-  font-size: 14px;
-  font-weight: 900;
-  text-shadow: 1px 1px 2px #000;
-  pointer-events: none;
-}
-.gold-text {
-  fill: #fbbf24 !important;
-  color: #fbbf24 !important;
-  font-weight: 900 !important;
-}
-.gifts-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  text-align: center;
-}
-.dice-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 150px;
-}
-.dice-grid {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-}
-.die-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.die-img-box {
-  width: 40px;
-  height: 40px;
-  background: #030712;
-  border: 2px solid #1e293b;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gifts-label {
-  font-weight: 900;
-  color: #94a3b8;
-  font-size: 0.8rem;
-  letter-spacing: 2px;
-  margin-bottom: 5px;
-}
-.gifts-slots {
-  display: flex;
-  gap: 5px;
-  height: 125px;
-}
-.gift-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.gift-img-box {
-  width: 45px;
-  height: 45px;
-  background: #030712;
-  border: 2px solid #1e293b;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gift-icon {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-.none-text {
-  font-size: 0.6rem;
-  color: #475569;
-  font-weight: bold;
-}
-.smoker-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-width: 200px;
-}
-.smoker-grid {
-  display: flex;
-}
-.smoker-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-.smoker-input {
-  width: 38px;
-  background: #030712;
-  border: 1px solid #334155;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 0.8rem;
-  height: 24px;
-  padding: 0;
-  outline: none;
-}
-.coins-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
-.coins-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-height: 97px;
-  justify-content: center;
-}
-.coin-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.coin-label {
-  font-size: 0.7rem;
-  font-weight: bold;
-  min-width: 70px;
-}
-.coin-copper {
-  color: #CD7F32;
-}
-.coin-white {
-  color: #FFFFFF;
-}
-.coin-silver {
-  color: #C0C0C0;
-}
-.coin-gold {
-  color: #FFD700;
-}
-.coin-input {
-  width: 50px;
-  background: #030712;
-  border: 1px solid #334155;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 0.8rem;
-  height: 20px;
-  padding: 0;
-  outline: none;
-}
-.dice-grid, .smoker-grid {
-  min-height: 97px;
-}
-.btn-group {
-  display: flex;
-  gap: 10px;
-  height: 42px;
-}
-.btn-auto {
-  background: #10b981;
-  color: white;
-  border: none;
-  padding: 0 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-  text-shadow: 1px 1px 0 #000;
-}
-.btn-mindful {
-  background: #fbbf24;
-  color: #000;
-  border: none;
-  padding: 0 20px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  font-size: 0.9rem;
-}
-.page-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 15px;
-  margin-bottom: 20px;
-  padding-top: 10px;
-}
-.page-title {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: #38bdf8;
-  letter-spacing: 1px;
-  text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
-}
-.help-btn {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #38bdf8;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1rem;
-}
-.help-btn:hover {
-  background: #334155;
-  color: white;
-}
-.help-modal-box {
-  background: #1e293b;
-  padding: 30px;
-  border-radius: 12px;
-  max-width: 680px;
-  width: 90%;
-  border: 1px solid #334155;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-.help-modal-body {
-  overflow-y: auto;
-  flex: 1;
-  margin-bottom: 20px;
-  padding-right: 10px;
-}
-.help-modal-box h2 {
-  color: #38bdf8;
-  margin-bottom: 20px;
-}
-.help-modal-box ol {
-  padding-left: 20px;
-  color: #cbd5e1;
-}
-.help-modal-box li {
-  margin-bottom: 12px;
-  line-height: 1.5;
-}
-.help-modal-box strong {
-  color: #f8fafc;
-}
-.btn-close-help {
-  margin-top: 20px;
-  width: 100%;
-  background: #38bdf8;
-  color: #000;
-  border: none;
-  padding: 10px;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.btn-close-help:hover {
-  filter: brightness(1.1);
-}
-.help-inline-icon {
-  height: 25px;
-  vertical-align: bottom;
-}
-.btn-wait {
-  background: #444;
-  color: #888;
-  cursor: not-allowed;
-}
-.charisma-main-card {
-  background: #111827;
-  padding: 20px;
-  border: 2px solid #1e293b;
-  border-radius: 12px;
-  display: flex;
-  justify-content: space-around;
-  width: 100%;
-  margin-bottom: 30px;
-  user-select: none;
-}
-.attr-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  width: 165px;
-  cursor: pointer;
-}
-.attr-cell.emulsified {
-  border-color: #fbbf24;
-  background: rgba(251, 191, 36, 0.05);
-}
-.attr-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.gear-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0;
-  transition: transform 0.2s;
-}
-.gear-btn:hover {
-  transform: rotate(45deg) scale(1.1);
-}
-.modal-subtitle {
-  color: #94a3b8;
-  font-size: 0.9rem;
-  margin-top: -15px;
-  margin-bottom: 20px;
-}
-.mp-grid {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-.mp-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.mp-col label {
-  color: #cbd5e1;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-.full-width {
-  width: 100%;
-}
-.mp-hint {
-  color: #fbbf24;
-  font-size: 0.75rem;
-}
-.mp-section {
-  background: #0f172a;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-.cps-tester-row {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  margin-top: 5px;
-}
-.cps-btn {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  width: 100px;
-  height: 40px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.cps-btn.active {
-  background: #f59e0b;
-}
-.cps-display {
-  color: #fff;
-  font-family: monospace;
-  font-size: 1.1rem;
-}
-.styled-select {
-  background: #1e293b;
-  color: white;
-  border: 1px solid #334155;
-  padding: 5px;
-  border-radius: 4px;
-}
-.checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.cb-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #e2e8f0;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-.mp-result-box {
-  background: #111827;
-  border: 2px solid #38bdf8;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 10px;
-}
-.mp-result-label {
-  color: #38bdf8;
-  font-size: 0.8rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-.mp-result-val {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-}
-.attr-roman {
-  font-size: 2.2rem;
-  min-width: 45px;
-  text-align: center;
-  font-weight: 900;
-  color: #38bdf8;
-  text-shadow: 2px 2px 0 #000;
-}
-.attr-mid-info {
-  display: flex;
-  flex-direction: column;
-}
-.attr-name {
-  font-size: 0.8rem;
-  color: #fff;
-  font-weight: bold;
-}
-.attr-input-line {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.7rem;
-  color: #94a3b8;
-}
-.attr-input-line input {
-  width: 45px;
-  background: #030712;
-  border: 1px solid #334155;
-  color: #fff;
-  text-align: center;
-  border-radius: 4px;
-  font-weight: bold;
-  font-family: inherit;
-}
-.attr-desc-line {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #cbd5e1;
-  border-top: 1px solid #1e293b;
-  padding-top: 6px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-}
-.mini-meat {
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-}
-.upgrade-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  border: 2px solid #000;
-  width: 100%;
-  margin: 0 auto 30px auto;
-}
-.upgrade-card {
-  background: #b397b3;
-  border: 1px solid #000;
-  display: flex;
-  flex-direction: column;
-}
-.upgrade-card.best {
-  outline: 4px solid #10b981;
-  z-index: 5;
-}
-.row-title,
-.cost-container,
-.level-box input,
-.row-time {
-  color: #fff;
-  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
-  font-weight: bold;
-}
-.row-title {
-  height: 40px;
-  display: flex;
-  align-items: center;
-  text-align: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  background: rgba(0, 0, 0, 0.1);
-}
-.row-mid {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 8px 5px;
-}
-.level-box {
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.level-box input {
-  width: 55px;
-  background: transparent;
-  border: none;
-  font-size: 1.3rem;
-  text-align: center;
-  outline: none;
-}
-.row-time {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 25px;
-  padding-bottom: 5px;
-  font-size: 0.9rem;
-}
-.time-pos {
-  color: #4ade80;
-}
-.time-neg {
-  color: #f87171;
-}
-.row-cost {
-  height: 34px;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 4px 4px 4px;
-  position: relative;
-}
-.cost-container {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 1.1rem;
-}
-.mindful-active {
-  color: #fbbf24;
-}
-.cost-adj-controls {
-  position: absolute;
-  right: 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.cost-chevron {
-  background: #334155;
-  border: none;
-  color: white;
-  width: 14px;
-  height: 14px;
-  font-size: 0.5rem;
-  border-radius: 2px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.gear-btn {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
-  transition: transform 0.2s;
-}
-.gear-btn:hover {
-  transform: rotate(45deg);
-}
-.mp-dual-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-}
-.mp-dual-col {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.big-select {
-  height: 40px;
-  font-size: 1rem;
-  margin-top: 5px;
-  width: 100%;
-}
-.modal-subtitle {
-  color: #94a3b8;
-  font-size: 0.9rem;
-  margin-top: -15px;
-  margin-bottom: 20px;
-}
-.mp-grid {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-.mp-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.mp-col label {
-  color: #cbd5e1;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-.full-width {
-  width: 100%;
-}
-.mp-hint {
-  color: #fbbf24;
-  font-size: 0.75rem;
-}
-.mp-section {
-  background: #0f172a;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-.cps-tester-row {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-  margin-top: 5px;
-}
-.cps-btn {
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  width: 100px;
-  height: 40px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.cps-btn.active {
-  background: #f59e0b;
-}
-.cps-btn.disabled {
-  background: #64748b;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-.cps-display {
-  color: #fff;
-  font-size: 1.1rem;
-}
-.cps-label-text {
-  color: #fff;
-  font-size: 0.9rem;
-  font-weight: bold;
-}
-.styled-select {
-  background: #1e293b;
-  color: white;
-  border: 1px solid #334155;
-  padding: 5px;
-  border-radius: 4px;
-}
-.mp-info-sub {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-.mp-better {
-  color: #10b981;
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
-}
-.mp-debug-info {
-  margin-top: 5px;
-  font-size: 0.75rem;
-  color: #64748b;
-  font-family: monospace;
-}
-.checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.cb-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #e2e8f0;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-.mp-result-box {
-  background: #111827;
-  border: 2px solid #38bdf8;
-  padding: 15px;
-  border-radius: 8px;
-  text-align: center;
-  margin-bottom: 10px;
-}
-.mp-result-label {
-  color: #38bdf8;
-  font-size: 0.8rem;
-  font-weight: bold;
-  letter-spacing: 1px;
-}
-.mp-result-val {
-  font-size: 1.8rem;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-}
+.bubba-page { padding: 20px; display: flex; justify-content: center; }
+.main-width-wrapper { width: 1120px; }
+.strategy-bar { position: relative; display: flex; justify-content: space-around; gap: 20px; border-top: 1px solid #1e293b; padding-top: 20px; width: 100%; margin-top: 10px; align-items: center; }
+.strat-item { display: flex; align-items: center; gap: 8px; }
+.strat-label { font-size: 0.75rem; color: #94a3b8; font-weight: bold; text-transform: uppercase; }
+.strat-val { font-size: 1rem; font-weight: 900; color: #fff; }
+.bonus-row { display: flex; justify-content: space-between; margin-bottom: 25px; background: #111827; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; align-items: center; width: 100%; flex-wrap: wrap; }
+
+.happiness-meter { display: flex; flex-direction: column; align-items: center; margin-left: 10px; }
+.meter-title { font-weight: 900; font-size: 0.9rem; margin-bottom: 10px; text-shadow: 1px 1px 0 #000; text-align: center; }
+.meter-main { display: flex; gap: 15px; align-items: center; justify-content: center; height: 100px; width: 100%; }
+.meter-bar { width: 22px; height: 100%; background: #030712; border: 2px solid #334155; border-radius: 4px; display: flex; align-items: flex-end; overflow: hidden; }
+.meter-fill { width: 100%; transition: height 0.3s ease; }
+.pat-label-container { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 4px 0; }
+.pat-label-small { font-size: 0.65rem; color: #94a3b8; font-weight: 900; text-transform: uppercase; line-height: 1; }
+.pat-val { font-size: 1.4rem; font-weight: 900; text-align: center; line-height: 1.1; color: #fff; }
+.pat-btn { background: #1f2937; color: white; border: 1px solid #374151; cursor: pointer; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; width: 30px; }
+.meter-footer { margin-top: 10px; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; color: #38bdf8; }
+.footer-icon { vertical-align: middle; width: 18px; height: 18px; }
+
+.radar-label { fill: #38bdf8; font-size: 14px; font-weight: 900; text-shadow: 1px 1px 2px #000; pointer-events: none; }
+.gold-text { fill: #fbbf24 !important; color: #fbbf24 !important; font-weight: 900 !important; }
+
+.gifts-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.gifts-label { font-weight: 900; color: #94a3b8; font-size: 0.8rem; letter-spacing: 2px; margin-bottom: 5px; }
+.gifts-slots { display: flex; gap: 5px; height: 125px; }
+.gift-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gift-img-box { width: 45px; height: 45px; background: #030712; border: 2px solid #1e293b; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.gift-icon { width: 40px; height: 40px; object-fit: contain; }
+
+.dice-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 150px; }
+.dice-grid { display: flex; align-items: center; justify-content: center; gap: 1px; min-height: 97px; }
+.die-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.die-img-box { width: 40px; height: 40px; background: #030712; border: 2px solid #1e293b; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+
+.smoker-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 200px; }
+.smoker-grid { display: flex; min-height: 97px; }
+.smoker-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.smoker-input { width: 38px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; font-size: 0.8rem; height: 24px; padding: 0; outline: none; }
+
+.coins-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.coins-grid { display: flex; flex-direction: column; gap: 4px; min-height: 97px; justify-content: center; }
+.coin-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.coin-label { font-size: 0.7rem; font-weight: bold; min-width: 70px; }
+.coin-copper { color: #CD7F32; }
+.coin-white { color: #FFFFFF; }
+.coin-silver { color: #C0C0C0; }
+.coin-gold { color: #FFD700; }
+.coin-input { width: 50px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; font-size: 0.8rem; height: 20px; padding: 0; outline: none; }
+
+.none-text { font-size: 0.6rem; color: #475569; font-weight: bold; }
+
+.btn-group { display: flex; gap: 10px; height: 42px; }
+.btn-auto { background: #10b981; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; text-shadow: 1px 1px 0 #000; }
+.btn-mindful { background: #fbbf24; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; }
+.btn-wait { background: #444; color: #888; cursor: not-allowed; }
+
+.page-title-row { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; padding-top: 10px; }
+.page-title { font-size: 1.4rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+.help-btn { background: #1e293b; border: 1px solid #334155; color: #38bdf8; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; }
+.help-btn:hover { background: #334155; color: white; }
+
+.help-modal-box { background: #1e293b; padding: 30px; border-radius: 12px; max-width: 665px; width: 90%; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); height: 90vh; display: flex; flex-direction: column; justify-content: space-between; }
+.help-modal-body { overflow-y: auto; flex: 1; margin-bottom: 20px; padding-right: 10px; }
+.help-modal-box h2 { color: #38bdf8; margin-bottom: 20px; }
+.help-modal-box ol { padding-left: 20px; color: #cbd5e1; }
+.help-modal-box li { margin-bottom: 12px; line-height: 1.5; }
+.help-modal-box strong { color: #f8fafc; }
+.btn-close-help { margin-top: 20px; width: 100%; background: #38bdf8; color: #000; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+.btn-close-help:hover { filter: brightness(1.1); }
+.help-inline-icon { height: 25px; vertical-align: bottom; }
+
+.charisma-main-card { background: #111827; padding: 20px; border: 2px solid #1e293b; border-radius: 12px; display: flex; justify-content: space-around; width: 100%; margin-bottom: 30px; user-select: none; }
+.attr-cell { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid transparent; border-radius: 8px; width: 165px; cursor: pointer; }
+.attr-cell.emulsified { border-color: #fbbf24; background: rgba(251, 191, 36, 0.05); }
+.attr-top { display: flex; align-items: center; gap: 10px; }
+.attr-roman { font-size: 2.2rem; min-width: 45px; text-align: center; font-weight: 900; color: #38bdf8; text-shadow: 2px 2px 0 #000; }
+.attr-mid-info { display: flex; flex-direction: column; }
+.attr-name { font-size: 0.8rem; color: #fff; font-weight: bold; }
+.attr-input-line { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: #94a3b8; }
+.attr-input-line input { width: 45px; background: #030712; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 4px; font-weight: bold; font-family: inherit; }
+.attr-desc-line { font-size: 0.75rem; font-weight: 800; color: #cbd5e1; border-top: 1px solid #1e293b; padding-top: 6px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.mini-meat { width: 16px; height: 16px; vertical-align: middle; }
+
+.upgrade-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 2px solid #000; width: 100%; margin: 0 auto 30px auto; }
+.upgrade-card { background: #b397b3; border: 1px solid #000; display: flex; flex-direction: column; position: relative; }
+.upgrade-card.best { outline: 4px solid #10b981; z-index: 5; }
+.row-title, .cost-container, .level-box input, .row-time { color: #fff; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-weight: bold; }
+.row-title { height: 40px; display: flex; align-items: center; text-align: center; justify-content: center; font-size: 1.1rem; background: rgba(0, 0, 0, 0.1); }
+.row-mid { display: flex; align-items: center; justify-content: space-around; padding: 8px 5px; }
+.level-box { background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.level-box input { width: 55px; background: transparent; border: none; font-size: 1.3rem; text-align: center; outline: none; }
+.row-time { display: flex; align-items: center; justify-content: center; min-height: 25px; padding-bottom: 5px; font-size: 0.9rem; }
+.time-pos { color: #4ade80; }
+.time-neg { color: #f87171; }
+.row-cost { height: 34px; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; margin: 0 4px 4px 4px; position: relative; }
+.cost-container { display: flex; align-items: center; gap: 4px; font-size: 1.1rem; }
+.mindful-active { color: #fbbf24; }
+.cost-adj-controls { position: absolute; right: 5px; display: flex; flex-direction: column; gap: 2px; }
+.cost-chevron { background: #334155; border: none; color: white; width: 14px; height: 14px; font-size: 0.5rem; border-radius: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+.gear-btn { position: absolute; right: 0; background: transparent; border: none; cursor: pointer; font-size: 1.2rem; padding: 0; transition: transform 0.2s; }
+.gear-btn:hover { transform: rotate(45deg) scale(1.1); }
+.modal-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+.tab-btn { background: transparent; border: none; color: #94a3b8; padding: 8px 16px; cursor: pointer; font-family: inherit; font-weight: bold; font-size: 0.9rem; text-transform: uppercase; border-radius: 4px; }
+.tab-btn:hover { background: #1e293b; color: white; }
+.tab-btn.active { background: #38bdf8; color: #000; }
+
+.modal-subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 20px; }
+.mp-grid { display: flex; gap: 20px; margin-bottom: 20px; }
+.mp-col { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.mp-col label { color: #cbd5e1; font-size: 0.8rem; font-weight: bold; }
+.full-width { width: 100%; }
+.mp-hint { color: #fbbf24; font-size: 0.75rem; }
+.mp-section { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+
+.mp-dual-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.mp-dual-col { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.big-select { height: 40px; font-size: 1rem; margin-top: 5px; width: 100%; }
+
+.cps-tester-row { display: flex; gap: 15px; align-items: center; margin-top: 5px; }
+.cps-btn { background: #ef4444; color: white; border: none; border-radius: 6px; width: 100px; height: 40px; font-weight: bold; cursor: pointer; }
+.cps-btn:active { background: #f59e0b; }
+.cps-btn.disabled { background: #64748b; cursor: not-allowed; opacity: 0.7; }
+.cps-display { color: #fff; font-size: 1.1rem; }
+.cps-label-text { color: #fff; font-size: 0.9rem; font-weight: bold; }
+.styled-select { background: #1e293b; color: white; border: 1px solid #334155; padding: 5px; border-radius: 4px; }
+.mp-info-sub { font-size: 0.7rem; color: #38bdf8; margin-top: 4px; }
+
+.checkboxes { display: flex; flex-direction: column; gap: 10px; }
+.cb-row { display: flex; align-items: center; gap: 10px; color: #e2e8f0; cursor: pointer; font-size: 0.9rem; }
+.mp-result-box { background: #111827; border: 2px solid #38bdf8; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 10px; }
+.mp-result-label { color: #38bdf8; font-size: 0.8rem; font-weight: bold; letter-spacing: 1px; }
+.mp-result-val { font-size: 1.8rem; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+.mp-better { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+.mp-debug-info { margin-top: 5px; font-size: 0.75rem; color: #64748b; font-family: monospace; }
+
+.weights-tab { display: flex; flex-direction: column; gap: 10px; flex: 1; overflow: hidden; }
+.weights-list { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding-right: 10px; margin-top: 10px; flex: 1; }
+.weight-item { display: flex; flex-direction: column; gap: 6px; padding: 8px; background: #0f172a; border-radius: 6px; border: 1px solid #334155; }
+.weight-label-row { display: flex; align-items: center; gap: 10px; }
+.weight-name { flex: 1; font-size: 0.8rem; color: #f8fafc; font-weight: bold; }
+.weight-val { font-size: 0.8rem; color: #38bdf8; min-width: 40px; text-align: right; }
+.weight-slider { width: 100%; cursor: pointer; accent-color: #38bdf8; }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
 </style>

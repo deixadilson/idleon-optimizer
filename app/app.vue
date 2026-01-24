@@ -6,9 +6,7 @@ const isModalOpen = ref(false);
 const jsonInput = ref("");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
   
-if (import.meta.client) {
-  inject();
-}
+if (import.meta.client) inject();
 
 watch(isModalOpen, (val) => {
   if (val) {
