@@ -4,12 +4,12 @@ const state = reactive({
   levels: Array(28).fill(0) as BubbaLevels,
   mindfulOffsets: Array(28).fill(0) as BubbaLevels,
   upgradeWeights: Array(28).fill(1) as number[],
-  charismaLvs: [0, 0, 0, 0, 0, 0] as [number, number, number, number, number, number],
+  charismaLvs: [0, 0, 0, 0, 0, 0] as number[],
   emulsifiedIndices: [] as number[],
   selectedGifts: [-1, -1],
   diceValues: [0, 0, 0, 0, 0, 0, 0, 0] as number[],
   smokerValues: [0, 0, 0, 0, 0] as number[],
-  coinValues: [0, 0, 0, 0] as [number, number, number, number],
+  coinValues: [0, 0, 0, 0] as number[],
   currentMeat: 0,
   activePats: 0,
   patsPerHour: 0,
@@ -458,37 +458,17 @@ export const useBubba = () => {
       const currentNextLv = nextLevels[i];
       if (currentNextLv !== undefined) nextLevels[i] = currentNextLv + 1;
 
-      const isHappiBoi = (i === 1);
-      const baselineGen = isHappiBoi ? getMeatGen(state.levels, getAvgHMult(state.levels[1] ?? 0)) : genCurrent;
-      const nGen = isHappiBoi ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1] ?? 0)) : getMeatGen(nextLevels, currentHMult);
-
-      const nTarget = getUpgradeCost(targetIdx, state.levels[targetIdx] ?? 0, state.mindfulOffsets[targetIdx] ?? 0, nextLevels);
-
-      const baselineTimeToTarget = baselineGen > 0 ? (targetCost - state.currentMeat) / (baselineGen / 60) : Infinity;
-      const nTimeToTarget = nGen > 0 ? (nTarget - (state.currentMeat - cost)) / (nGen / 60) : Infinity;
-
-      let timeSaved = baselineTimeToTarget - nTimeToTarget;
+      let speedupMultiplier = 1;
 
       if (i === 5) {
         const b = (state.levels[0] || 0) + (state.levels[7] || 0) * 6 + (state.levels[23] || 0) * 50;
-        timeSaved = isFinite(currentTimeToTarget) ? (0.1 * currentTimeToTarget / (b + 1)) : 0;
+        speedupMultiplier = (b + 1) / (b + 0.9);
       }
-
-      if (i === 10 && state.selectedGifts.includes(0)) {
-        timeSaved += 1200;
-      }
-
-      let efficiency = cost > 0 ? (timeSaved * (state.upgradeWeights[i] ?? 1)) / cost : 0;
 
       if (i === 6) {
-        const charLv = state.levels[i] ?? 0;
-        const b = (state.levels[0] || 0) + (state.levels[7] || 0) * 6 + (state.levels[23] || 0) * 50;
-
-        if (b === 0 || !isFinite(currentTimeToTarget)) {
-          timeSaved = 0;
-          efficiency = 0;
-        } else {
-          const hoursLeft = currentTimeToTarget / 60;
+        const hoursLeft = currentTimeToTarget / 60;
+        if (isFinite(hoursLeft) && hoursLeft > 0) {
+          const charLv = state.levels[i] ?? 0;
           const numbahsActive = state.selectedGifts.includes(2);
           const numbahsMult = numbahsActive ? 2.5 : 1;
 
@@ -550,14 +530,12 @@ export const useBubba = () => {
           const gainHustleEquiv = valNxt - valCur;
           const hustleStart = state.charismaLvs[0] ?? 0;
           const currentHustleMult = 1 + (0.1 * hustleStart);
-          const relativeSpeedup = (0.1 * gainHustleEquiv) / currentHustleMult;
-
-          timeSaved = relativeSpeedup * currentTimeToTarget;
-          efficiency = cost > 0 ? (timeSaved * (state.upgradeWeights[i] ?? 1)) / cost : 0;
+          speedupMultiplier = 1 + (0.1 * gainHustleEquiv) / currentHustleMult;
         }
       }
 
       if (i === 13) {
+        // Super Chart Speedup
         const scBonusCurrent = 1 + 0.01 * (state.levels[i] ?? 0);
         const delta = 0.01;
 
@@ -580,12 +558,11 @@ export const useBubba = () => {
         const totalGainScore = hustleGain + rizzGain + joyGain + mindfulGain;
         const currentHustleTotal = (baseHustle * scBonusCurrent) + 1;
 
-        let relativeSpeedup = totalGainScore / currentHustleTotal;
-        timeSaved = isFinite(currentTimeToTarget) ? (relativeSpeedup * currentTimeToTarget) : 0;
-        efficiency = cost > 0 ? (timeSaved * (state.upgradeWeights[i] ?? 1)) / cost : 0;
+        speedupMultiplier = 1 + totalGainScore / currentHustleTotal;
       }
 
       if (i === 15) {
+        // Smoker Speedup
         const rates = [0.02, 0.03, 0.04, 0.06, 0.10];
         let maxRelBoost = 0;
         for (let j = 0; j < 5; j++) {
@@ -593,9 +570,27 @@ export const useBubba = () => {
           const rel = (rates[j] ?? 0) / currentGroup;
           if (rel > maxRelBoost) maxRelBoost = rel;
         }
-        timeSaved = isFinite(currentTimeToTarget) ? (maxRelBoost * currentTimeToTarget) : 0;
-        efficiency = cost > 0 ? (timeSaved * (state.upgradeWeights[i] ?? 1)) / cost : 0;
+        speedupMultiplier = 1 + maxRelBoost;
       }
+
+      const isHappiBoi = (i === 1);
+      const baselineGen = isHappiBoi ? getMeatGen(state.levels, getAvgHMult(state.levels[1] ?? 0)) : genCurrent;
+      let nGen = isHappiBoi ? getMeatGen(nextLevels, getAvgHMult(nextLevels[1] ?? 0)) : getMeatGen(nextLevels, currentHMult);
+
+      nGen *= speedupMultiplier;
+
+      const nTarget = getUpgradeCost(targetIdx, state.levels[targetIdx] ?? 0, state.mindfulOffsets[targetIdx] ?? 0, nextLevels);
+
+      const baselineTimeToTarget = baselineGen > 0 ? (targetCost - state.currentMeat) / (baselineGen / 60) : Infinity;
+      const nTimeToTarget = nGen > 0 ? (nTarget - (state.currentMeat - cost)) / (nGen / 60) : Infinity;
+
+      let timeSaved = baselineTimeToTarget - nTimeToTarget;
+
+      if (i === 10 && state.selectedGifts.includes(0)) {
+        timeSaved += 1200;
+      }
+
+      let efficiency = cost > 0 ? (timeSaved * (state.upgradeWeights[i] ?? 1)) / cost : 0;
 
       return { cost, timeSaved, efficiency, icon: `/bubba/upg-${i}.png`, name: UPGRADE_NAMES[i] };
     });

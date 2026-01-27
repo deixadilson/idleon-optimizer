@@ -8,12 +8,10 @@ const poppyInputDisplay = ref("");
 
 const isHelpOpen = ref(false);
 
-onMounted(() => { 
-  meatInputDisplay.value = formatNumber(state.currentMeat); 
-  poppyInputDisplay.value = state.poppyFishPower > 0 ? formatNumber(Math.pow(10, state.poppyFishPower)) : "0";
-});
-
-watch(() => state.currentMeat, (v) => meatInputDisplay.value = formatNumber(v));
+watch(() => state.currentMeat, (v) => meatInputDisplay.value = formatNumber(v), { immediate: true });
+watch(() => state.poppyFishPower, (v) => {
+  poppyInputDisplay.value = v > 0 ? formatNumber(Math.round(Math.pow(10, v))) : "0";
+}, { immediate: true });
 
 const handleInput = (e: Event) => {
   const val = (e.target as HTMLInputElement).value;
@@ -319,7 +317,7 @@ const recommendedUpgrades = computed(() => {
                 <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
               </div>
             </div>
-            <button class="gear-btn" @click="isMegaPushConfigOpen = true" title="Configure Mega Push">⚙️</button>
+            <button class="gear-btn" @click="isMegaPushConfigOpen = true" title="Configure Mega Push Strategy and Upgrade Weights">⚙️</button>
           </div>
       </div>
 
@@ -447,7 +445,7 @@ const recommendedUpgrades = computed(() => {
                      <label>Click Speed</label>
                      <div class="cps-tester-row">
                         <span class="cps-label-text">Clicks/sec:</span>
-                        <input type="number" v-model.number="state.megaPushConfig.clicksPerSecond" class="styled-input" style="width: 60px;" />
+                        <input type="number" v-model.number="state.megaPushConfig.clicksPerSecond" min="1" class="styled-input" style="width: 60px;" />
                         <button class="cps-btn" @mousedown="recordClick" :class="{ 'active': clickTestActive, 'disabled': clickTestCooldown }" :disabled="clickTestCooldown">
                            {{ clickTestCooldown ? 'wait...' : (clickTestActive ? (clickTestTimeLeft.toFixed(1) + 's') : 'CLICK TEST') }}
                         </button>

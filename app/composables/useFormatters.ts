@@ -2,13 +2,14 @@ export const useFormatters = () => {
   const formatNumber = (num: number): string => {
     const absx = Math.abs(num);
     if (absx === 0) return "0";
+    if (!isFinite(num)) return "∞";
     if (absx < 1e6) return Math.round(num).toLocaleString('en-US');
 
     const suffixes = ["M", "B", "T", "Q", "QQ", "QQQ"];
     const exponent = Math.floor(Math.log10(absx) + 1e-10);
 
     let sIdx = 0;
-    if (exponent >= 25) sIdx = -1;
+    if (exponent >= 24) sIdx = -1;
     else if (exponent >= 22) sIdx = 5;
     else if (exponent >= 19) sIdx = 4;
     else if (exponent >= 16) sIdx = 3;
@@ -85,5 +86,13 @@ export const useFormatters = () => {
     return parts.slice(0, 2).join(" ");
   };
 
-  return { formatNumber, parseNumber, formatTime };
+  const formatMultiplier = (num: number): string => {
+    if (num === 0) return "0";
+    if (num < 1000) {
+      return num.toFixed(2).replace(/\.?0+$/, "");
+    }
+    return formatNumber(num);
+  };
+
+  return { formatNumber, parseNumber, formatTime, formatMultiplier };
 };
