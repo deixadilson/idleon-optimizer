@@ -190,7 +190,7 @@ const recommendedUpgrades = computed(() => {
       </div>
 
       <header class="dashboard">
-        <div class="card"><label>Meat Production Rate</label><div class="val">{{ formatNumber(meatGen) }}/min</div></div>
+        <div class="card"><label>Meat Generation Rate</label><div class="val">{{ formatNumber(meatGen) }}/min</div></div>
         <div class="card highlight"><label>Current Target: {{ target.name }}</label><div class="val">{{ formatNumber(target.cost) }}</div></div>
         <div class="card"><label>Time to Target</label><div class="val">{{ formatTime((target.cost - state.currentMeat) / (meatGen / 60)) }}</div></div>
       </header>

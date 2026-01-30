@@ -10,6 +10,8 @@ interface PoppyState {
   goGoSecretKangaroo: number;
   gambitBonus: number;
   targetMode: 'CHEAPEST' | 'RESET' | 'CATCH';
+  totalFisherooPoints: number;
+  distributionMode: 'Custom' | 'Max bluefin gen' | 'max shiny fish and luck' | 'max cost reduction' | 'max tartar gen' | 'bluefin and tartar' | 'balanced gen';
 }
 
 const state = reactive<PoppyState>({
@@ -22,6 +24,8 @@ const state = reactive<PoppyState>({
   goGoSecretKangaroo: 0,
   gambitBonus: 1,
   targetMode: 'CHEAPEST',
+  totalFisherooPoints: 0,
+  distributionMode: 'Custom',
 });
 
 export const usePoppy = () => {
@@ -92,20 +96,7 @@ export const usePoppy = () => {
     return Math.floor(fishPerMin);
   };
 
-  const getTarFishGen = (pondLevels: PoppyLevels, tarLevels: PoppyLevels) => {
-    if ((pondLevels[11] ?? 0) < 1) return 0;
 
-    let basePerHour = 2;
-    const speedMult = 1 + ((tarLevels[4] ?? 0) * 0.2);
-    const megaFishMult = ((pondLevels[11] ?? 0) >= 5 ? 3 : 1) * ((pondLevels[11] ?? 0) >= 8 ? 3 : 1);
-    const mongoMult = 1 + ((tarLevels[6] ?? 0) * 0.15);
-
-    const blackLv = state.fisherooLevels[4] ?? 0;
-    const redMult = 1 + (state.fisherooLevels[3] ?? 0) * 0.04;
-    const blackFisherooMult = blackLv > 0 ? (1 + blackLv * 0.2) * redMult : 1;
-
-    return basePerHour * speedMult * megaFishMult * mongoMult * blackFisherooMult;
-  };
 
   const target = computed(() => {
     const cost6 = getPondUpgradeCost(6, state.pondLevels[6] ?? 0);
@@ -183,8 +174,8 @@ export const usePoppy = () => {
     const rawGen = getFishGen(state.pondLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
     const targetIdx = target.value.index;
 
-    const futureBurdenCost = getFutureEfficientCost(state.pondLevels, state.tarLevels);
     const currentTargetCost = target.value.cost;
+    const futureBurdenCost = state.currentFish >= currentTargetCost ? 0 : getFutureEfficientCost(state.pondLevels, state.tarLevels);
     const currentTotalBurden = currentTargetCost + futureBurdenCost;
     const currentTimeToBurden = rawGen > 0 ? (currentTotalBurden - state.currentFish) / rawGen : Infinity;
 
@@ -196,10 +187,11 @@ export const usePoppy = () => {
 
       const nextGen = getFishGen(nextLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
       const nextTargetCost = getPondUpgradeCost(targetIdx, nextLevels[targetIdx] ?? 0, nextLevels, state.tarLevels);
-      const nextFutureBurdenCost = getFutureEfficientCost(nextLevels, state.tarLevels);
+
+      const fishAfterBuy = state.currentFish - buyCost;
+      const nextFutureBurdenCost = fishAfterBuy >= nextTargetCost ? 0 : getFutureEfficientCost(nextLevels, state.tarLevels);
 
       const nextTotalBurden = nextTargetCost + nextFutureBurdenCost;
-      const fishAfterBuy = state.currentFish - buyCost;
       const nextTimeToBurden = nextGen > 0 ? (nextTotalBurden - fishAfterBuy) / nextGen : Infinity;
 
       const timeSaved = (currentTimeToBurden - nextTimeToBurden) * 60;
@@ -215,35 +207,26 @@ export const usePoppy = () => {
   });
 
   const tarUpgradeAnalysis = computed(() => {
-    const gen = getTarFishGen(state.pondLevels, state.tarLevels);
-    const pondGen = getFishGen(state.pondLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
-    const futureBurdenCost = getFutureEfficientCost(state.pondLevels, state.tarLevels);
-    const currentTargetCost = target.value.cost;
-    const currentTotalBurden = currentTargetCost + futureBurdenCost;
-    const currentTimeToBurden = pondGen > 0 ? (currentTotalBurden - state.currentFish) / pondGen : Infinity;
+    const bluefinGen = getFishGen(state.pondLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
+    const currentBluefinTargetTime = bluefinGen > 0 ? (target.value.cost - state.currentFish) / bluefinGen : Infinity;
 
     return TAR_UPGRADE_NAMES.map((name, i) => {
       const cost = getTarUpgradeCost(i, state.tarLevels[i] ?? 0, state.tarLevels, state.fisherooLevels, state.pondLevels);
-      const nextLevels = [...state.tarLevels];
-      const cur = nextLevels[i] ?? 0;
-      nextLevels[i] = cur + 1;
-
-      const nextTarGen = getTarFishGen(state.pondLevels, nextLevels);
 
       let efficiency = 0;
       let timeSaved = 0;
 
       if ([0, 2, 3, 7].includes(i)) {
+        const nextLevels = [...state.tarLevels];
+        nextLevels[i] = (nextLevels[i] ?? 0) + 1;
+
         const nextPondGen = getFishGen(state.pondLevels, nextLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
         const nextTargetCostPond = getPondUpgradeCost(target.value.index, state.pondLevels[target.value.index] ?? 0, state.pondLevels, nextLevels, state.fisherooLevels);
-        const nextFutureBurdenCost = getFutureEfficientCost(state.pondLevels, nextLevels);
-        const nextTotalBurden = nextTargetCostPond + nextFutureBurdenCost;
-        const nextTimeToBurden = nextPondGen > 0 ? (nextTotalBurden - (state.currentFish)) / nextPondGen : Infinity;
 
-        timeSaved = (currentTimeToBurden - nextTimeToBurden) * 60;
+        const nextBluefinTargetTime = nextPondGen > 0 ? (nextTargetCostPond - state.currentFish) / nextPondGen : Infinity;
+
+        timeSaved = (currentBluefinTargetTime - nextBluefinTargetTime) * 60;
         efficiency = (cost > 0 && timeSaved > 0) ? timeSaved / cost : 0;
-      } else {
-        efficiency = 0;
       }
 
       return {
@@ -281,6 +264,84 @@ export const usePoppy = () => {
     ];
   });
 
+  const SLOPES = [0.4, 0.3, 0.15, 0.04, 0.2];
+
+  const pointsToGain = computed(() => {
+    return (state.pondLevels[9] ?? 0) + (state.tarLevels[5] ?? 0) + 15;
+  });
+
+  let isDistributing = false;
+  const applyDistribution = () => {
+    if (state.distributionMode === 'Custom') return;
+
+    const total = state.totalFisherooPoints;
+
+    let bestRedLv = 0;
+    let maxRedScore = -1;
+    for (let r = 0; r <= total; r++) {
+      const score = (1 + (total - r) * 0.4) * (1 + r * 0.04);
+      if (score > maxRedScore) {
+        maxRedScore = score;
+        bestRedLv = r;
+      }
+    }
+
+    const remainder = total - bestRedLv;
+    const nextLevels = [0, 0, 0, 0, 0];
+    nextLevels[3] = bestRedLv;
+
+    let targets: number[] = [];
+    if (state.distributionMode === 'Max bluefin gen') targets = [0];
+    else if (state.distributionMode === 'max shiny fish and luck') targets = [1];
+    else if (state.distributionMode === 'max cost reduction') targets = [2];
+    else if (state.distributionMode === 'max tartar gen') targets = [4];
+    else if (state.distributionMode === 'bluefin and tartar') targets = [0, 4];
+    else if (state.distributionMode === 'balanced gen') targets = [0, 1, 4];
+
+    if (targets.length === 0) return;
+
+    const perTarget = Math.floor(remainder / targets.length);
+    let extra = remainder % targets.length;
+
+    for (const idx of targets) {
+      nextLevels[idx] = perTarget + (extra > 0 ? 1 : 0);
+      if (extra > 0) extra--;
+    }
+
+    isDistributing = true;
+    state.fisherooLevels = nextLevels;
+    setTimeout(() => { isDistributing = false; }, 0);
+  };
+
+  const tarGen = computed(() => {
+    const superTarbaitLv = state.tarLevels[4] ?? 0;
+    const redBonus = 1 + (state.fisherooLevels[3] ?? 0) * 0.04;
+    const blackBonus = 1 + (state.fisherooLevels[4] ?? 0) * 0.2;
+    const totalBlackBonus = blackBonus * redBonus;
+
+    const mfStatus = state.pondLevels[11] ?? 0;
+    const mf5Factor = mfStatus >= 5 ? 3 : 1;
+    const mf8Factor = mfStatus >= 8 ? 3 : 1;
+
+    return 2 * (1 + 0.05 * superTarbaitLv) * totalBlackBonus * mf5Factor * mf8Factor;
+  });
+
+  watch(() => state.distributionMode, (newMode) => {
+    if (newMode !== 'Custom') applyDistribution();
+  });
+
+  watch(() => state.totalFisherooPoints, () => {
+    if (state.distributionMode !== 'Custom') applyDistribution();
+  });
+
+  watch(() => state.fisherooLevels, () => {
+    if (isDistributing) return;
+
+    if (state.distributionMode !== 'Custom') {
+      state.distributionMode = 'Custom';
+    }
+  }, { deep: true });
+
   const shinyMults = computed(() => {
     return state.shinyMultipliers.map((mult, i) => Math.max(1, mult));
   });
@@ -296,8 +357,9 @@ export const usePoppy = () => {
     target,
     timeToTarget,
     totalShinyMult,
+    pointsToGain,
     pondGen: computed(() => getFishGen(state.pondLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus)),
-    tarGen: computed(() => getTarFishGen(state.pondLevels, state.tarLevels)),
+    tarGen,
     pondUpgradeAnalysis,
     tarUpgradeAnalysis,
     fisherooBonuses,

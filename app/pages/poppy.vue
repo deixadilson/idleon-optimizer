@@ -1,9 +1,10 @@
 <script setup lang="ts">
 const { 
   state, pondGen, tarGen, pondUpgradeAnalysis, tarUpgradeAnalysis, 
-  POND_UPGRADE_NAMES, TAR_UPGRADE_NAMES, target, timeToTarget, fisherooBonuses, totalShinyMult
+  POND_UPGRADE_NAMES, TAR_UPGRADE_NAMES, target, timeToTarget, fisherooBonuses, totalShinyMult,
+  pointsToGain
 } = usePoppy();
-const { formatNumber, parseNumber, formatTime, formatMultiplier } = useFormatters();
+const { formatNumber, parseNumber, formatTime, formatMultiplier, formatTartarGen } = useFormatters();
 
 const fishInputDisplay = ref("");
 
@@ -70,7 +71,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
       </div>
 
       <header class="dashboard">
-        <div class="card"><label>Bluefin Pond Rate</label><div class="val">{{ formatNumber(pondGen) }}/min</div></div>
+        <div class="card"><label>Bluefin Generation Rate</label><div class="val">{{ formatNumber(pondGen) }}/min</div></div>
         <div class="card highlight"><label>Current Target: {{ target.name }}</label><div class="val">{{ formatNumber(target.cost) }}</div></div>
         <div class="card"><label>Time to Target</label><div class="val">{{ formatTime(timeToTarget) }}</div></div>
       </header>
@@ -121,9 +122,9 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
       </section>
 
       <section class="buy-section tf-buy">
-        <div class="settings-bar-inner">
-            <div class="input-group"><label>Tartar Generation:</label><div class="val-display">{{ formatNumber(tarGen) }}/hr</div></div>
-            <button @click="buyBestTar" class="btn-auto tar-btn" :disabled="bestTarIndex === -1">
+        <div class="settings-bar-inner justify-end">
+            <div class="input-group" style="margin-right: auto;"><label>Tartar Fish Generation Rate:</label><div class="val-display">{{ formatTartarGen(tarGen) }}/hr</div></div>
+            <button @click="buyBestTar" class="btn-auto tar-btn green-btn" :disabled="bestTarIndex === -1">
               BUY TAR: {{ bestTarIndex !== -1 ? (TAR_UPGRADE_NAMES[bestTarIndex] ?? '').toUpperCase() : 'WAIT' }}
             </button>
         </div>
@@ -137,8 +138,8 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
               <span class="upg-title">{{ (upg.name ?? '').toUpperCase() }}</span>
             </div>
             <div class="row-mid-refactor">
-               <span v-if="upg.efficiency > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
-               <span v-else>--</span>
+              <span v-if="upg.efficiency > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
+              <span v-else>--</span>
             </div>
             <div class="row-bottom-refactor">
               <div class="level-box-mini"><input type="number" v-model.number="state.tarLevels[i]" min="0" /></div>
@@ -151,38 +152,55 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
         </main>
       </section>
 
-      <section>
-        <div class="spiral-grid">
-            <div v-for="(bonus, i) in fisherooBonuses" :key="i" class="spiral-card" :style="{ borderColor: fisherooColors[i] }">
-                <div class="spiral-left">
-                    <div class="spiral-icon-box" :style="{ background: fisherooColors[i] + '20' }">
-                        <img :src="`/poppy/spiral-${i+1}.png`" class="spiral-icon" />
-                    </div>
-                    <div class="level-input-simple">
-                      <input type="number" v-model.number="state.fisherooLevels[i]" min="0" />
-                    </div>
-                </div>
-                <div class="spiral-right">
-                    <div class="spiral-desc" :style="{ color: fisherooColors[i] }">{{ bonus.text }}</div>
-                </div>
+      <section class="mf-section pf-buy">
+        <h3>Fisheroo Reset</h3>
+        <div class="settings-bar-inner">
+            <div class="input-group"><label>Fisheroo Pts:</label><input type="number" v-model.number="state.totalFisherooPoints" class="styled-input" style="width: 100px;" /></div>
+            <div class="input-group"><label>Pts on Next Reset:</label><div class="val-display">+{{ pointsToGain }}</div></div>
+            <div class="input-group">
+              <label>Auto Distribute:</label>
+              <select v-model="state.distributionMode" class="styled-input styled-select" style="width: 220px;">
+                <option value="Custom">Custom</option>
+                <option value="Max bluefin gen">Max bluefin generation</option>
+                <option value="max shiny fish and luck">Max shiny fish and luck</option>
+                <option value="max cost reduction">Max cost reduction</option>
+                <option value="max tartar gen">Max tartar generation</option>
+                <option value="bluefin and tartar">Bluefin and tartar</option>
+                <option value="balanced gen">All generation</option>
+              </select>
             </div>
+        </div>
+        <div class="spiral-grid">
+          <div v-for="(bonus, i) in fisherooBonuses" :key="i" class="spiral-card" :style="{ borderColor: fisherooColors[i] }">
+            <div class="spiral-left">
+              <div class="spiral-icon-box" :style="{ background: fisherooColors[i] + '20' }">
+                <img :src="`/poppy/spiral-${i+1}.png`" class="spiral-icon" />
+              </div>
+              <div class="level-input-simple">
+                <input type="number" v-model.number="state.fisherooLevels[i]" min="0" />
+              </div>
+            </div>
+            <div class="spiral-right">
+              <div class="spiral-desc" :style="{ color: fisherooColors[i] }">{{ bonus.text }}</div>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="mf-section shiny-section">
-          <h3>SHINY FISH</h3>
-          <div class="shiny-grid">
-              <div v-for="n in 6" :key="n" class="shiny-slot">
-                  <div class="shiny-icon-box">
-                      <img :src="`/poppy/shiny-${n}.png`" class="shiny-icon" />
-                  </div>
-                  <div class="shiny-input-row">
-                    <input type="number" v-model.number="state.shinyMultipliers[n-1]" min="1" step="0.01" />
-                    <span>x</span>
-                  </div>
-              </div>
+        <h3>SHINY FISH</h3>
+        <div class="shiny-grid">
+          <div v-for="n in 6" :key="n" class="shiny-slot">
+            <div class="shiny-icon-box">
+              <img :src="`/poppy/shiny-${n}.png`" class="shiny-icon" />
+            </div>
+            <div class="shiny-input-row">
+              <input type="number" v-model.number="state.shinyMultipliers[n-1]" min="1" step="0.01" />
+              <span>x</span>
+            </div>
           </div>
-          <div class="total-mult-footer">Total Multi: {{ formatMultiplier(totalShinyMult) }}x</div>
+        </div>
+        <div class="total-mult-footer">Total Multi: {{ formatMultiplier(totalShinyMult) }}x</div>
       </section>
 
       <section class="mf-section">
@@ -209,18 +227,20 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .buy-section { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 25px; width: 100%; }
 .buy-section h3 { text-align: center; margin-bottom: 15px; color: #38bdf8; text-transform: uppercase; font-size: 1rem; font-weight: bold; }
 .total-mult-footer { text-align: center; font-size: 1rem; color: #fff; font-weight: 900; margin-top: 15px; text-shadow: 1.5px 1.5px 0 #000; }
-.settings-bar-inner { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 20px; flex-wrap: wrap; }
+.settings-bar-inner { display: flex; justify-content: space-between; align-items: end; width: 100%; gap: 20px; flex-wrap: wrap; padding: 0 5px; }
+.justify-end { justify-content: flex-end; }
 
 .val-display { font-size: 1.2rem; font-weight: 900; color: #fff; text-shadow: 1px 1px 0 #000; }
 
 .input-group { display: flex; flex-direction: column; gap: 5px; }
 .input-group label { font-size: 0.75rem; color: #94a3b8; font-weight: bold; white-space: nowrap; }
-.styled-input { background: #0f172a; color: white; border: 1px solid #334155; padding: 8px 12px; border-radius: 4px; font-family: inherit; }
-.styled-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; }
-.styled-select option { background: #0f172a; color: white; }
+.styled-input { background: #030712; color: white; border: 1px solid #334155; padding: 8px 12px; border-radius: 4px; font-family: inherit; }
+.styled-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; background-color: #030712; }
+.styled-select option { background: #030712; color: white; }
 
 .btn-auto { background: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; text-shadow: 1px 1px 0 #000; height: 38px; }
 .btn-auto.tar-btn { background: #64748b; }
+.btn-auto.green-btn { background: #10b981; }
 .btn-auto:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .upgrade-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border: 2px solid #000; width: 100%; margin: 0 auto; overflow: hidden; background: #000; margin-bottom: 30px; }
@@ -243,8 +263,8 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .cost-container-mini { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 1.05rem; color: #fff; text-shadow: 1.5px 1.5px 0 #000; font-weight: bold; font-family: monospace; }
 .fish-mini-icon { width: 14px; height: 14px; }
 
-.spiral-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; }
-.spiral-card { background: #111827; border: 2px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 20px; user-select: none; }
+.spiral-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-top: 20px;}
+.spiral-card { background: #111827; border: 2px solid #1e293b; border-radius: 12px; padding: 15px; display: flex; align-items: center; gap: 2px; user-select: none; }
 .spiral-left { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 60px; }
 .spiral-icon-box { border-radius: 10px; padding: 8px; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border: 1px solid rgba(255,255,255,0.05); }
 .spiral-icon { object-fit: contain; }

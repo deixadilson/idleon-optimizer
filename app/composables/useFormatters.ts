@@ -94,5 +94,13 @@ export const useFormatters = () => {
     return formatNumber(num);
   };
 
-  return { formatNumber, parseNumber, formatTime, formatMultiplier };
+  const formatTartarGen = (num: number): string => {
+    const abs = Math.abs(num);
+    if (abs >= 100000 && abs < 1000000) {
+      return Math.ceil(num / 1000) + "K";
+    }
+    return formatNumber(num);
+  };
+
+  return { formatNumber, parseNumber, formatTime, formatMultiplier, formatTartarGen };
 };

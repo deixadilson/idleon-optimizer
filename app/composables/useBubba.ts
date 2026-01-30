@@ -79,7 +79,7 @@ export const useBubba = () => {
 
   const spareCoinsMulti = computed(() => {
     const [c1, c2, c3, c4] = state.coinValues;
-    return 1 + (c1 + 5 * c2 + 25 * c3 + 100 * c4) / 100;
+    return 1 + ((c1 ?? 0) + 5 * (c2 ?? 0) + 25 * (c3 ?? 0) + 100 * (c4 ?? 0)) / 100;
   });
 
   const maxPats = computed(() => {
@@ -328,9 +328,11 @@ export const useBubba = () => {
 
     const baseMeatRate = baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * poppyMult * beegSliceMult;
 
-    let totalYield = 0;
+    let totalGrossYield = 0;
+    let totalGiftCost = 0;
     const giftsToOpen = config.giftsUsed;
     let simH = currentH;
+    let simLevels = [...state.levels];
 
     for (let i = 0; i < giftsToOpen; i++) {
       if (i === 0) {
@@ -345,8 +347,17 @@ export const useBubba = () => {
         }
       }
 
+      const currentOpenGiftLv = simLevels[10] ?? 0;
+      totalGiftCost += getUpgradeCost(10, currentOpenGiftLv, state.mindfulOffsets[10] ?? 0, simLevels);
+
+      simLevels[10] = currentOpenGiftLv + 1;
+
+      const currenttotalLv = simLevels.reduce((a, b) => a + b, 0);
+      const currentMf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (currenttotalLv / 100) : 1;
+      const currentMeatRate = (baseMeatRate / mf1Mult) * currentMf1Mult;
+
       const hMult = getHMultFromHappiness(simH);
-      totalYield += 20 * baseMeatRate * hMult;
+      totalGrossYield += 20 * currentMeatRate * hMult;
 
       const clickDuration = 1 / cps;
       const decayStep = getDecayRate(simH) * clickDuration;
@@ -358,14 +369,16 @@ export const useBubba = () => {
     let optLevels = [...state.levels];
     let simUpgradeIdx = 10;
 
-    const startDelay = moveTime;
-    const stepSize = 0.1;
-    let t = 0;
-    while (t < startDelay) {
-      const dt = Math.min(stepSize, startDelay - t);
-      const decayStep = getDecayRate(optH) * dt;
-      optH = Math.max(0, optH - decayStep);
-      t += dt;
+    {
+      const startDelay = moveTime;
+      const stepSize = 0.1;
+      let t = 0;
+      while (t < startDelay) {
+        const dt = Math.min(stepSize, startDelay - t);
+        const decayStep = getDecayRate(optH) * dt;
+        optH = Math.max(0, optH - decayStep);
+        t += dt;
+      }
     }
 
     while (true) {
@@ -386,7 +399,7 @@ export const useBubba = () => {
     }
 
     return {
-      totalYield,
+      totalYield: totalGrossYield - totalGiftCost,
       startSuggestion: (batch1Count > 0) ? (batch1Count / cps) : 0,
       maxHMult: getHMultFromHappiness(maxHReached),
       optimalGifts

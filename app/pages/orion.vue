@@ -36,7 +36,7 @@ const buyBest = () => {
       </div>
 
       <header class="dashboard">
-        <div class="card"><label>Generation Rate</label><div class="val">{{ formatNumber(featherGen) }}/s</div></div>
+        <div class="card"><label>FeatherGeneration Rate</label><div class="val">{{ formatNumber(featherGen) }}/s</div></div>
         <div class="card highlight"><label>Current Target: {{ target.name }}</label><div class="val">{{ formatNumber(target.cost) }}</div></div>
         <div class="card"><label>Time to Target</label><div class="val">{{ formatTime(timeToTarget) }}</div></div>
       </header>

@@ -91,13 +91,16 @@ const importJson = () => {
         const shinySlice = optLacc.slice(281, 287);
         const shinyBases = [30, 50, 100, 150, 250, 500];
         poppyState.shinyMultipliers = shinySlice.map((v, i) => {
-            const amt = parseFloat(v) || 0;
-            const base = shinyBases[i] || 1;
-            return amt > 0 ? (1 + (base * Math.log(Math.max(1, amt))) / 100) : 1;
+          const amt = parseFloat(v) || 0;
+          const base = shinyBases[i] || 1;
+          return amt > 0 ? (1 + (base * Math.log(Math.max(1, amt))) / 100) : 1;
         });
 
+        const unusedPoints = parseFloat(optLacc[290]) || 0;
         const fisherooSlice = optLacc.slice(291, 296);
-        poppyState.fisherooLevels = fisherooSlice.map(v => parseInt(v) || 0);
+        const fLevels = fisherooSlice.map(v => parseInt(v) || 0);
+        poppyState.fisherooLevels = fLevels;
+        poppyState.totalFisherooPoints = fLevels.reduce((a, b) => a + b, 0) + unusedPoints;
 
         const tarSlice = optLacc.slice(297, 305);
         poppyState.tarLevels = tarSlice.map(v => parseInt(v) || 0);
@@ -202,28 +205,28 @@ const importJson = () => {
       // Index: Holes[15][27] -> Val 35
       const monLev = (h[15] && h[15][27]) ? parseFloat(h[15][27]) : 0;
       if (monLev > 0) {
-         const monVal = 35; // Hardcoded from holesInfo37 index 27
-         // Cosmo: Holes[4][0] (Same index as measurement cosmo)
-         const cosmoMonLev = (h[4] && h[4][0]) ? parseFloat(h[4][0]) : 0;
-         const cosmoMonMulti = 1 + (25 * cosmoMonLev) / 100;
-         
-         // Formula: 0.1 * ceil( (Lev / (250 + Lev)) * 10 * Val * Cosmo )
-         const rawTerm = (monLev / (250 + monLev)) * 10 * monVal * cosmoMonMulti;
-         const monBonus = 0.1 * Math.ceil(rawTerm);
-         calcMultiSum += monBonus;
-         console.log(`Monument: Lev=${monLev} (362), Val=${monVal} , Cosmo=${cosmoMonMulti}x (2), Bonus=${monBonus.toFixed(2)} (86%)`);
+        const monVal = 35; // Hardcoded from holesInfo37 index 27
+        // Cosmo: Holes[4][0] (Same index as measurement cosmo)
+        const cosmoMonLev = (h[4] && h[4][0]) ? parseFloat(h[4][0]) : 0;
+        const cosmoMonMulti = 1 + (25 * cosmoMonLev) / 100;
+        
+        // Formula: 0.1 * ceil( (Lev / (250 + Lev)) * 10 * Val * Cosmo )
+        const rawTerm = (monLev / (250 + monLev)) * 10 * monVal * cosmoMonMulti;
+        const monBonus = 0.1 * Math.ceil(rawTerm);
+        calcMultiSum += monBonus;
+        console.log(`Monument: Lev=${monLev} (362), Val=${monVal} , Cosmo=${cosmoMonMulti}x (2), Bonus=${monBonus.toFixed(2)} (86%)`);
       }
 
       // 5. Jar Bonus
       // Indices: Holes[24][23] and Holes[24][30]
       // Multiplier: 1.375 (Heuristic based on user observation 8->11%)
       if (Array.isArray(h[24])) {
-         const j23 = parseFloat(h[24][23]) || 0;
-         const j30 = parseFloat(h[24][30]) || 0;
-         const talentFactor = 1.375;
-         const jarBonus = (j23 + j30) * talentFactor;
-         calcMultiSum += jarBonus;
-         console.log(`Jars: J23=${j23}, J30=${j30}, Factor=${talentFactor}, Bonus=${jarBonus.toFixed(2)} (15%)`);
+        const j23 = parseFloat(h[24][23]) || 0;
+        const j30 = parseFloat(h[24][30]) || 0;
+        const talentFactor = 1.375;
+        const jarBonus = (j23 + j30) * talentFactor;
+        calcMultiSum += jarBonus;
+        console.log(`Jars: J23=${j23}, J30=${j30}, Factor=${talentFactor}, Bonus=${jarBonus.toFixed(2)} (15%)`);
       }
 
       // 6. Tesseract Bonus
