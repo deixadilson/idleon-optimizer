@@ -30,14 +30,14 @@ const handlePoppyBlur = () => {
 
 const buyBest = () => {
   const idx = bestUpgradeIndex.value;
-  if (idx !== -1 && upgradeAnalysis.value[idx]) {
+  if (idx !== -1 && upgradeAnalysis.value[idx] && state.levels[idx] !== undefined) {
     state.levels[idx]++;
   }
 };
 
 const buyMindful = () => {
   const idx = bestUpgradeIndex.value;
-  if (idx !== -1 && !MINDFUL_RESTRICTED.includes(idx) && upgradeAnalysis.value[idx]) {
+  if (idx !== -1 && !MINDFUL_RESTRICTED.includes(idx) && upgradeAnalysis.value[idx] && state.levels[idx] !== undefined && state.mindfulOffsets[idx] !== undefined) {
     state.levels[idx] += 2;
     state.mindfulOffsets[idx] += 1;
   }
@@ -54,42 +54,46 @@ const toggleEmulsify = (idx: number) => {
 };
 
 const cycleGift = (slot: number, direction: number) => {
-    let next = state.selectedGifts[slot];
-    const otherSlot = slot === 0 ? 1 : 0;
-    do {
-      next += direction;
-      if (next < -1) next = 5;
-      if (next > 5) next = -1;
-    } while (next !== -1 && next === state.selectedGifts[otherSlot]);
-    state.selectedGifts[slot] = next;
+  let next = state.selectedGifts[slot];
+  if (next === undefined) return;
+  const otherSlot = slot === 0 ? 1 : 0;
+  do {
+    next += direction;
+    if (next < -1) next = 5;
+    if (next > 5) next = -1;
+  } while (next !== -1 && next === state.selectedGifts[otherSlot]);
+  state.selectedGifts[slot] = next;
 };
 
 const adjustMindfulOffset = (idx: number, delta: number) => {
-  const next = state.mindfulOffsets[idx] + delta;
-  if (next >= 0 && next < state.levels[idx]) state.mindfulOffsets[idx] = next;
+  const currentOffset = state.mindfulOffsets[idx];
+  const currentLevel = state.levels[idx];
+  if (currentOffset === undefined || currentLevel === undefined) return;
+  const next = currentOffset + delta;
+  if (next >= 0 && next < currentLevel) state.mindfulOffsets[idx] = next;
 };
 
-const currentH = computed(() => state.activePats * state.levels[1] * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1));
+const currentH = computed(() => (state.activePats ?? 0) * (state.levels[1] ?? 0) * (charismaBonuses.value.joy ?? 1) * (state.selectedGifts.includes(1) ? 1.5 : 1));
 const currentHMult = computed(() => getHMultFromHappiness(currentH.value));
 
 const hTiers = [
-    { name: "Amused", min: 1, max: 10.1, color: "#3b82f6" },
-    { name: "Beaming", min: 10.1, max: 21.2, color: "#eab308" },
-    { name: "Contented", min: 21.2, max: 51, color: "#22c55e" },
-    { name: "Delighted", min: 51, max: 140.7, color: "#94a3b8" },
-    { name: "Ecstatic", min: 140.7, max: 1000, color: "#a855f7" }
+  { name: "Amused", min: 1, max: 10.1, color: "#3b82f6" },
+  { name: "Beaming", min: 10.1, max: 21.2, color: "#eab308" },
+  { name: "Contented", min: 21.2, max: 51, color: "#22c55e" },
+  { name: "Delighted", min: 51, max: 140.7, color: "#94a3b8" },
+  { name: "Ecstatic", min: 140.7, max: 1000, color: "#a855f7" }
 ];
 
 const currentTier = computed(() => {
-    const m = currentHMult.value;
-    return hTiers.find(t => m >= t.min && m < t.max) || hTiers[hTiers.length - 1];
+  const m = currentHMult.value;
+  return hTiers.find(t => m >= t.min && m < t.max) || hTiers[hTiers.length - 1];
 });
 
 const happinessBarHeight = computed(() => {
-    const m = currentHMult.value;
-    const t = currentTier.value;
-    const progress = Math.max(0, m - t.min);
-    return `${Math.min(100, (progress / (t.max - t.min)) * 100)}%`;
+  const m = currentHMult.value;
+  const t = currentTier.value;
+  const progress = Math.max(0, m - t.min);
+  return `${Math.min(100, (progress / (t.max - t.min)) * 100)}%`;
 });
 
 const radarPoints = computed(() => {
@@ -152,9 +156,9 @@ const recordClick = () => {
     clickTestCount.value++;
     state.megaPushConfig.clicksPerSecond = clickTestCount.value;
   } else if (!clickTestCooldown.value) {
-      startClickTest();
-      clickTestCount.value++;
-      state.megaPushConfig.clicksPerSecond = clickTestCount.value;
+    startClickTest();
+    clickTestCount.value++;
+    state.megaPushConfig.clicksPerSecond = clickTestCount.value;
   }
 };
 
@@ -167,12 +171,31 @@ watch(() => state.megaPushConfig.emulsifyRizzAfter, (val) => {
 
 watch(isMegaPushConfigOpen, (isOpen) => {
   if (isOpen) {
-    if (state.megaPushConfig.patsUsed === 0) {
+    if (!state.megaPushConfig.isSaved) {
       state.megaPushConfig.patsUsed = maxPats.value;
+      state.megaPushConfig.giftsUsed = openGiftMegaPush.value.count;
+      state.megaPushConfig.emulsifyJoyBefore = state.emulsifiedIndices.includes(2);
+      
+      const hustleActive = state.emulsifiedIndices.includes(0);
+      const rizzActive = state.emulsifiedIndices.includes(1);
+      state.megaPushConfig.emulsifyHustleAfter = hustleActive;
+      state.megaPushConfig.emulsifyRizzAfter = hustleActive ? false : rizzActive;
+    } else {
+      if (state.megaPushConfig.patsUsed === 0) {
+        state.megaPushConfig.patsUsed = maxPats.value;
+      }
+      if (state.megaPushConfig.giftsUsed === 0) {
+        state.megaPushConfig.giftsUsed = openGiftMegaPush.value.count;
+      }
     }
-    state.megaPushConfig.giftsUsed = openGiftMegaPush.value.count;
   }
 });
+
+const saveMegaPushConfig = () => {
+  state.megaPushConfig.isSaved = true;
+  isMegaPushConfigOpen.value = false;
+};
+
 
 const recommendedUpgrades = computed(() => {
   return UPGRADE_NAMES
@@ -393,7 +416,7 @@ const recommendedUpgrades = computed(() => {
               <li><strong>Auto Buy:</strong> After you buy the recommended upgrade in the game you can click the <strong>"BUY: [UPGRADE]"</strong> green button to update the fields and get the next recommendation. If you got a Mindful Success in the game, click the <strong>"BUY MINDFUL ✨"</strong> button instead!</li>
               <li><strong>Happiness:</strong> Fill out the <strong>Pats/Hr</strong> field based on how often you pet Bubba to help the optimizer more precisely recommend upgrades like Happi Boi and others.</li>
               <li><strong>Charisma Emulsify:</strong> After unlocking Grand Salmon Mega Flesh you can double-click attributes in the Charisma section to make them "Emulsified". You can also emulsify <strong>multiple</strong> attributes at the same time to simulate and plan your progression more accurately!</li>
-              <li><strong>Custom Strategy:</strong> The optimizer will never recommend the following upgrades: Megaflesh, Bubba Boon, Fun Gifts, Open Gift, Smoker, Dice Roll, More Dice, More Sides and Loaded Dice (The same upgrades that MINDFUL Attribute don't work for). You should buy them based on your own strategy.</li>
+              <li><strong>Custom Strategy:</strong> The upgrades MINDFUL Attribute don't work for, like Megaflesh, Smoker, Dice, etc. will never be recommended by the optimizer. You should buy them based on your own strategy. To disable an upgrade recommendation or change its priority, click the ⚙️ icon and use the <strong>Upgrade Weights</strong> tab.</li>
               <li><strong>Information Bar:</strong>
                 <ul style="padding-left: 20px; font-size: 0.8rem; margin-top: 5px;">
                   <li><strong>Pat Value:</strong> The <em>total</em> extra meat yield of one single Pat on Bubba, calculated over its full duration.</li>
@@ -484,7 +507,7 @@ const recommendedUpgrades = computed(() => {
             </div>
           </div>
 
-          <button @click="isMegaPushConfigOpen = false" class="btn-close-help">SAVE & CLOSE</button>
+          <button @click="saveMegaPushConfig" class="btn-close-help">SAVE & CLOSE</button>
         </div>
       </div>
 

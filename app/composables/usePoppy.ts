@@ -267,7 +267,8 @@ export const usePoppy = () => {
   const SLOPES = [0.4, 0.3, 0.15, 0.04, 0.2];
 
   const pointsToGain = computed(() => {
-    return (state.pondLevels[9] ?? 0) + (state.tarLevels[5] ?? 0) + 15;
+    const nautilusBonus = (state.pondLevels[11] ?? 0) >= 3 ? 5 : 0;
+    return (state.pondLevels[9] ?? 0) + (state.tarLevels[5] ?? 0) + 10 + nautilusBonus;
   });
 
   let isDistributing = false;

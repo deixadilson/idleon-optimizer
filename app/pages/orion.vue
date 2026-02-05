@@ -106,7 +106,7 @@ const buyBest = () => {
             <ol>
               <li><strong>Import Data:</strong> Fill the fields yourself or import game data by clicking the <strong>IMPORT JSON</strong> button at the top and paste your raw JSON from Idleon Efficiency or Toolbox.</li>
               <li><strong>Efficiency:</strong> The optimizer calculates the best path to your next major reset. The most efficient standard upgrade is highlighted in <strong>Green</strong>.</li>
-              <li><strong>Auto Buy:</strong> After purchasing the recommended upgrade in-game, click the <strong>"BUY: [UPGRADE]"</strong> green button to automatically update your levels and feathers for the next recommendation.</li>
+              <li><strong>Auto Buy:</strong> After purchasing the recommended upgrade in-game, click the <strong>"BUY: [UPGRADE]"</strong> green button to automatically update your numbers for the next recommendation.</li>
               <li><strong>Targets:</strong> The blue outline and <strong>TARGET</strong> label indicates your next major goal: either a <strong>Feather Restart</strong> or a <strong>Mega Reset</strong>. The efficiency calculation takes into account how much time each upgrade saves on the way to these targets.</li>
               <li><strong>Advanced Bonuses:</strong> Make sure to fill your <strong>Shiny Feathers</strong> count, <strong>Go Go Secret Owl</strong> bonus from the Upgrade Vault and your Bonus from <strong>Gambit</strong> as they significantly impact generation rate calculations.</li>
             </ol>

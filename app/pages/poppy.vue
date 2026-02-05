@@ -60,6 +60,7 @@ const buyBestTar = () => {
   }
 };
 
+const isHelpOpen = ref(false);
 const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 </script>
 
@@ -68,6 +69,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
     <div class="main-width-wrapper">
       <div class="page-title-row">
         <h1 class="page-title">POPPY THE KANGAROO MOUSE'S FISH POND</h1>
+        <button class="help-btn" @click="isHelpOpen = true">ℹ</button>
       </div>
 
       <header class="dashboard">
@@ -153,7 +155,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
       </section>
 
       <section class="mf-section pf-buy">
-        <h3>Fisheroo Reset</h3>
+        <h3>Fisheroo</h3>
         <div class="settings-bar-inner">
             <div class="input-group"><label>Fisheroo Pts:</label><input type="number" v-model.number="state.totalFisherooPoints" class="styled-input" style="width: 100px;" /></div>
             <div class="input-group"><label>Pts on Next Reset:</label><div class="val-display">+{{ pointsToGain }}</div></div>
@@ -213,6 +215,25 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
         </div>
       </section>
       <div><a href='https://ko-fi.com/A0A01RVDGT' target='_blank'><img style="display: block; height:36px; margin: 20px auto 10px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=6" alt="Buy Me a Coffee at ko-fi.com" /></a></div>
+
+      <div v-if="isHelpOpen" class="modal-overlay" @click.self="isHelpOpen = false">
+        <div class="help-modal-box">
+          <h2>How to use Poppy's Optimizer</h2>
+          <div class="help-modal-body">
+            <ol>
+              <li><strong>Import Data:</strong> Fill the fields yourself or import game data by clicking the <strong>IMPORT JSON</strong> button at the top and paste your raw JSON from Idleon Efficiency or Toolbox.</li>
+              <li><strong>Efficiency:</strong> The optimizer calculates "Time Saved per Bluefin Spent". The best upgrade is highlighted in <strong>Green</strong>.</li>
+              <li><strong>Auto Buy:</strong> After purchasing the recommended upgrade in-game, click the <strong>"BUY POND: [UPGRADE]"</strong> green button to automatically update your levels.</li>
+              <li><strong>Targets:</strong> The blue outline and <strong>TARGET</strong> label indicate your next major goal: either a <strong>Fisheroo Reset</strong> or <strong>Greatest Catch</strong>. You can change it in the <strong>Target</strong> dropdown.</li>
+              <li><strong>Fisheroo:</strong> Use <strong>Auto Distribute</strong> to allocate points. The <strong>Red Spiral</strong> acts as a multiplier for all reset bonuses. The optimizer handles this math for you!</li>
+              <li><strong>Tartar Fish:</strong> The optimizer currently only recommends Tartar upgrades that directly reduce the time to your Bluefin target. Other Tartar upgrades should be bought according to your own discretion.</li>
+              <li><strong>Advanced Bonuses:</strong> Make sure to fill your <strong>Go Go Secret Kangaroo Mouse</strong> bonus and <strong>Gambit</strong> bonus as they significantly impact generation rate calculations.</li>
+              <li><strong>Shiny Fish:</strong> Also don't forget to update your <strong>Shiny Multipliers</strong> manually as they are a massive multiplicative factor for your Bluefin generation.</li>
+            </ol>
+          </div>
+          <button @click="isHelpOpen = false" class="btn-close-help">GOT IT!</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>c
@@ -235,7 +256,9 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .input-group { display: flex; flex-direction: column; gap: 5px; }
 .input-group label { font-size: 0.75rem; color: #94a3b8; font-weight: bold; white-space: nowrap; }
 .styled-input { background: #030712; color: white; border: 1px solid #334155; padding: 8px 12px; border-radius: 4px; font-family: inherit; }
+.buy-section .styled-input { background: #0f172a; }
 .styled-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; background-color: #030712; }
+.buy-section .styled-select { background-color: #0f172a; }
 .styled-select option { background: #030712; color: white; }
 
 .btn-auto { background: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.8rem; text-shadow: 1px 1px 0 #000; height: 38px; }
@@ -279,4 +302,17 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .shiny-icon { width: 40px; height: 40px; object-fit: contain; }
 .shiny-input-row { display: flex; align-items: center; gap: 3px; font-size: 1rem; color: #94a3b8; font-weight: bold; background: #030712; padding: 4px 8px; border-radius: 6px; border: 1px solid #334155; }
 .shiny-input-row input { width: 60px; background: transparent; border: none; color: #fff; text-align: center; font-weight: bold; outline: none; font-size: 1.1rem; }
+
+.help-btn { background: #1e293b; border: 1px solid #334155; color: #38bdf8; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; }
+.help-btn:hover { background: #334155; color: white; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.help-modal-box { background: #1e293b; padding: 30px; border-radius: 12px; max-width: 665px; width: 90%; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); max-height: 90vh; display: flex; flex-direction: column; justify-content: space-between; }
+.help-modal-body { overflow-y: auto; flex: 1; margin-bottom: 20px; padding-right: 10px; }
+.help-modal-box h2 { color: #38bdf8; margin-bottom: 20px; }
+.help-modal-box ol { padding-left: 20px; color: #cbd5e1; }
+.help-modal-box li { margin-bottom: 12px; line-height: 1.5; }
+.help-modal-box strong { color: #f8fafc; }
+.btn-close-help { margin-top: 20px; width: 100%; background: #38bdf8; color: #000; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+.btn-close-help:hover { filter: brightness(1.1); }
 </style>

@@ -19,9 +19,10 @@ const state = reactive({
     giftsUsed: 0,
     clicksPerSecond: 8,
     mouseSpeed: 'medium' as 'slow' | 'medium' | 'fast' | 'instant',
-    emulsifyJoyBefore: false,
+    emulsifyJoyBefore: true,
     emulsifyHustleAfter: false,
     emulsifyRizzAfter: false,
+    isSaved: false,
   }
 });
 
@@ -162,7 +163,15 @@ export const useBubba = () => {
     const pats = maxPats.value;
     const cps = 8;
 
-    let phase1Emulsified = [2];
+    const isSaved = state.megaPushConfig.isSaved;
+    let phase1Emulsified: number[];
+    if (isSaved) {
+      phase1Emulsified = state.emulsifiedIndices.filter(i => i > 2);
+      if (state.megaPushConfig.emulsifyJoyBefore) phase1Emulsified.push(2);
+    } else {
+      phase1Emulsified = [...state.emulsifiedIndices];
+    }
+
     const charBonusP1 = getSimulatedCharisma(phase1Emulsified);
     const joyFactor = state.selectedGifts.includes(1) ? 1.5 : 1;
     const hPerPat = (state.levels[1] ?? 0) * charBonusP1.joy * joyFactor;
@@ -177,10 +186,9 @@ export const useBubba = () => {
     };
     simulatePats();
 
-    let phase2Emulsified = [...phase1Emulsified];
-
-    const charBonusP3 = getSimulatedCharisma(phase2Emulsified);
+    const charBonusP3 = getSimulatedCharisma(phase1Emulsified);
     const baseSlices = ((state.levels[0] ?? 0) * 1) + ((state.levels[7] ?? 0) * 6) + ((state.levels[23] ?? 0) * 50);
+
     const D84 = ((state.levels[2] ?? 0) * 2) + (8 * (state.levels[11] ?? 0)) + ((state.levels[19] ?? 0) * 25) + 100;
     const totalLv = state.levels.reduce((a, b) => a + b, 0);
     const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
@@ -232,9 +240,16 @@ export const useBubba = () => {
       };
     };
 
-    let phase1Emulsified = [...state.emulsifiedIndices];
-    if (config.emulsifyJoyBefore && !phase1Emulsified.includes(2)) phase1Emulsified.push(2);
-    if (!config.emulsifyJoyBefore && phase1Emulsified.includes(2)) phase1Emulsified = phase1Emulsified.filter(i => i !== 2);
+    const isSaved = state.megaPushConfig.isSaved;
+
+    let phase1Emulsified: number[];
+    if (isSaved) {
+      phase1Emulsified = state.emulsifiedIndices.filter(i => i > 2);
+      if (config.emulsifyJoyBefore) phase1Emulsified.push(2);
+    } else {
+      phase1Emulsified = [...state.emulsifiedIndices];
+    }
+
 
     const charBonusP1 = getSimulatedCharisma(phase1Emulsified);
     const hPerPat = (state.levels[1] ?? 0) * charBonusP1.joy * joyFactor;
