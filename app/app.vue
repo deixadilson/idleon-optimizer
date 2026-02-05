@@ -269,11 +269,14 @@ const importJson = () => {
   <div class="app-container">
     <header class="global-header">
       <div class="header-content">
-        <nav class="main-nav">
-          <NuxtLink to="/orion" class="nav-link">Orion</NuxtLink>
-          <NuxtLink to="/poppy" class="nav-link">Poppy</NuxtLink>
-          <NuxtLink to="/bubba" class="nav-link">Bubba</NuxtLink>
-        </nav>
+        <div class="header-left">
+          <NuxtLink to="/" class="app-logo">IDLEON <span>OPTIMIZER</span></NuxtLink>
+          <nav class="main-nav">
+            <NuxtLink to="/orion" class="nav-link">Orion</NuxtLink>
+            <NuxtLink to="/poppy" class="nav-link">Poppy</NuxtLink>
+            <NuxtLink to="/bubba" class="nav-link">Bubba</NuxtLink>
+          </nav>
+        </div>
         <button @click="isModalOpen = true" class="import-btn">IMPORT JSON</button>
       </div>
     </header>
@@ -301,8 +304,9 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
 .global-header {
   display: flex;
   justify-content: center;
-  padding: 8px 0;
+  padding: 12px 0;
   background: #0c0c16;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .header-content {
@@ -312,26 +316,52 @@ body { background-color: #0c0c16; color: #f8fafc; font-family: 'Courier New', mo
   align-items: center;
 }
 
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+}
+
+.app-logo {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 1.3rem;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.app-logo span {
+  color: #38bdf8;
+}
+
+.app-logo.router-link-active,
+.app-logo.router-link-exact-active {
+  color: #fff;
+  border-bottom: none;
+}
+
 .main-nav { display: flex; gap: 30px; }
 
 .nav-link {
-  color: #38bdf8;
+  color: #94a3b8;
   text-decoration: none;
   font-weight: 900;
-  font-size: 1rem;
+  font-size: 0.9rem;
   text-transform: uppercase;
   padding: 4px 0;
+  letter-spacing: 0.5px;
 }
 
-.nav-link:hover { filter: brightness(1.2); }
-.router-link-active { border-bottom: 2px solid #38bdf8; }
+.nav-link:hover { color: #fff; }
+.router-link-active { color: #38bdf8; border-bottom: 2px solid #38bdf8; }
 
 .import-btn {
   background: transparent;
   border: 1px solid #334155;
   color: #94a3b8;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 6px 16px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
   font-family: inherit;

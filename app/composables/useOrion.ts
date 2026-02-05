@@ -200,5 +200,5 @@ export const useOrion = () => {
     return diff <= 0 ? 0 : diff / featherGen.value;
   });
 
-  return { state, UPGRADE_NAMES, featherGen, target, timeToTarget, upgradeAnalysis, bestUpgradeIndex };
+  return { state, UPGRADE_NAMES, featherGen, target, timeToTarget, upgradeAnalysis, bestUpgradeIndex, getUpgradeCost };
 };

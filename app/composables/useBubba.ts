@@ -455,10 +455,6 @@ export const useBubba = () => {
     return baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
   };
 
-  const getProgressReq = (n: number) => {
-    return 50 * Math.pow(2.8 + n / 3.55, n - Math.min(1, Math.floor(n / 4)));
-  };
-
   const upgradeAnalysis = computed(() => {
     const joyMulti = charismaBonuses.value.joy;
     const giftHappyMult = state.selectedGifts.includes(1) ? 1.5 : 1;
@@ -626,6 +622,6 @@ export const useBubba = () => {
 
   return {
     state, UPGRADE_NAMES,
-    meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation
+    meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation, getUpgradeCost
   };
 };
