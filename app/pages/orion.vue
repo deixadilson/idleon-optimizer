@@ -9,9 +9,18 @@ onMounted(() => {
   featherInput.value = formatNumber(state.currentFeathers);
 });
 
-watch(() => state.currentFeathers, (newVal) => {
-  featherInput.value = formatNumber(newVal);
+watch(() => state.currentFeathers, (v) => {
+  if (parseNumber(featherInput.value) !== v) {
+    featherInput.value = formatNumber(v);
+  }
 });
+
+const handleInput = (e: Event) => {
+  const val = (e.target as HTMLInputElement).value;
+  featherInput.value = val;
+  const parsed = parseNumber(val);
+  if (!isNaN(parsed)) state.currentFeathers = Math.max(0, parsed);
+};
 
 const handleBlur = () => {
   state.currentFeathers = parseNumber(featherInput.value);
@@ -44,7 +53,7 @@ const buyBest = () => {
       <div class="settings-bar">
         <div class="input-group">
           <label>Current Feathers:</label>
-          <input type="text" v-model="featherInput" @blur="handleBlur" class="styled-input" style="width: 150px;" />
+          <input type="text" v-model="featherInput" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 150px;" />
         </div>
         <div class="input-group">
           <label>Shiny Feathers:</label>

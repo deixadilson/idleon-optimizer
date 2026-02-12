@@ -107,7 +107,7 @@ export const usePoppy = () => {
     } else if (state.targetMode === 'CATCH') {
       return { name: "Greatest Catch", cost: cost11, index: 11 };
     } else {
-      if (cost11 <= cost6 && (state.pondLevels[11] ?? 0) < 12) {
+      if (cost11 <= cost6) {
         return { name: "Greatest Catch", cost: cost11, index: 11 };
       } else {
         return { name: "Fisheroo Reset", cost: cost6, index: 6 };
@@ -179,28 +179,63 @@ export const usePoppy = () => {
     const currentTotalBurden = currentTargetCost + futureBurdenCost;
     const currentTimeToBurden = rawGen > 0 ? (currentTotalBurden - state.currentFish) / rawGen : Infinity;
 
+    const directPondIndices = [0, 1, 5, 7, 10];
+    let maxPondDirectEfficiency = 0;
+
+    if (rawGen > 0 && isFinite(currentTimeToBurden)) {
+      directPondIndices.forEach(idx => {
+        const bCost = getPondUpgradeCost(idx, state.pondLevels[idx] ?? 0);
+        const nLvs = [...state.pondLevels];
+        nLvs[idx] = (nLvs[idx] ?? 0) + 1;
+        const nGen = getFishGen(nLvs, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
+        const nTgtCost = getPondUpgradeCost(targetIdx, nLvs[targetIdx] ?? 0, nLvs, state.tarLevels);
+        const fAfter = state.currentFish - bCost;
+        const nFutBurden = fAfter >= nTgtCost ? 0 : getFutureEfficientCost(nLvs, state.tarLevels);
+        const nTotBurden = nTgtCost + nFutBurden;
+        const nTimeToBurden = nGen > 0 ? (nTotBurden - fAfter) / nGen : Infinity;
+        const tSaved = isFinite(currentTimeToBurden) ? (currentTimeToBurden - nTimeToBurden) * 60 : 0;
+        const eff = (bCost > 0) ? tSaved / bCost : 0;
+        if (eff > maxPondDirectEfficiency) maxPondDirectEfficiency = eff;
+      });
+    }
+
     return POND_UPGRADE_NAMES.map((name, i) => {
       const buyCost = getPondUpgradeCost(i, state.pondLevels[i] ?? 0);
-      const nextLevels = [...state.pondLevels];
-      const cur = nextLevels[i] ?? 0;
-      nextLevels[i] = cur + 1;
+      let timeSaved = 0;
+      let efficiency = 0;
 
-      const nextGen = getFishGen(nextLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
-      const nextTargetCost = getPondUpgradeCost(targetIdx, nextLevels[targetIdx] ?? 0, nextLevels, state.tarLevels);
+      if (i === 2 || i === 8) {
+        const potential = 0.05;
+        const weight = 0.30;
+        timeSaved = potential * 1440 * maxPondDirectEfficiency * weight;
+        efficiency = buyCost > 0 ? timeSaved / buyCost : 0;
+      } else {
+        const nextLevels = [...state.pondLevels];
+        const cur = nextLevels[i] ?? 0;
+        nextLevels[i] = cur + 1;
 
-      const fishAfterBuy = state.currentFish - buyCost;
-      const nextFutureBurdenCost = fishAfterBuy >= nextTargetCost ? 0 : getFutureEfficientCost(nextLevels, state.tarLevels);
+        const nextGen = getFishGen(nextLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
+        const nextTargetCost = getPondUpgradeCost(targetIdx, nextLevels[targetIdx] ?? 0, nextLevels, state.tarLevels);
 
-      const nextTotalBurden = nextTargetCost + nextFutureBurdenCost;
-      const nextTimeToBurden = nextGen > 0 ? (nextTotalBurden - fishAfterBuy) / nextGen : Infinity;
+        const fishAfterBuy = state.currentFish - buyCost;
+        const nextFutureBurdenCost = fishAfterBuy >= nextTargetCost ? 0 : getFutureEfficientCost(nextLevels, state.tarLevels);
 
-      const timeSaved = (currentTimeToBurden - nextTimeToBurden) * 60;
+        const nextTotalBurden = nextTargetCost + nextFutureBurdenCost;
+        const nextTimeToBurden = nextGen > 0 ? (nextTotalBurden - fishAfterBuy) / nextGen : Infinity;
+
+        if (isFinite(currentTimeToBurden)) {
+          timeSaved = (currentTimeToBurden - nextTimeToBurden) * 60;
+        } else if (isFinite(nextTimeToBurden)) {
+          timeSaved = Infinity;
+        }
+        efficiency = (buyCost > 0 && timeSaved > 0) ? timeSaved / buyCost : 0;
+      }
 
       return {
         name,
         cost: buyCost,
         timeSaved,
-        efficiency: (buyCost > 0 && timeSaved > 0) ? timeSaved / buyCost : 0,
+        efficiency,
         icon: `/poppy/pond-upg-${i + 1}.png`
       };
     });
@@ -209,6 +244,34 @@ export const usePoppy = () => {
   const tarUpgradeAnalysis = computed(() => {
     const bluefinGen = getFishGen(state.pondLevels, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
     const currentBluefinTargetTime = bluefinGen > 0 ? (target.value.cost - state.currentFish) / bluefinGen : Infinity;
+    const HORIZON = 1440;
+    const directIndices = [0, 2, 3, 7];
+
+    let avgDirectEfficiency = 0;
+    let maxDirectEfficiency = 0;
+    let avgDirectCost = 0;
+
+    if (bluefinGen > 0 && isFinite(currentBluefinTargetTime)) {
+      let totalEff = 0;
+      let totalCost = 0;
+      directIndices.forEach(idx => {
+        const upgCost = getTarUpgradeCost(idx, state.tarLevels[idx] ?? 0, state.tarLevels, state.fisherooLevels, state.pondLevels);
+        const nLvs = [...state.tarLevels];
+        nLvs[idx] = (nLvs[idx] ?? 0) + 1;
+        const nPondGen = getFishGen(state.pondLevels, nLvs, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
+        const nTgtCost = getPondUpgradeCost(target.value.index, state.pondLevels[target.value.index] ?? 0, state.pondLevels, nLvs, state.fisherooLevels);
+        const nBlueTgtTime = nPondGen > 0 ? (nTgtCost - state.currentFish) / nPondGen : Infinity;
+
+        const tSaved = isFinite(currentBluefinTargetTime) ? (currentBluefinTargetTime - nBlueTgtTime) * 60 : 0;
+        const eff = (upgCost > 0) ? tSaved / upgCost : 0;
+
+        totalEff += eff;
+        totalCost += upgCost;
+        if (eff > maxDirectEfficiency) maxDirectEfficiency = eff;
+      });
+      avgDirectEfficiency = totalEff / directIndices.length;
+      avgDirectCost = totalCost / directIndices.length;
+    }
 
     return TAR_UPGRADE_NAMES.map((name, i) => {
       const cost = getTarUpgradeCost(i, state.tarLevels[i] ?? 0, state.tarLevels, state.fisherooLevels, state.pondLevels);
@@ -216,17 +279,54 @@ export const usePoppy = () => {
       let efficiency = 0;
       let timeSaved = 0;
 
-      if ([0, 2, 3, 7].includes(i)) {
-        const nextLevels = [...state.tarLevels];
-        nextLevels[i] = (nextLevels[i] ?? 0) + 1;
+      if (bluefinGen > 0) {
+        if (directIndices.includes(i)) {
+          const nextLevels = [...state.tarLevels];
+          nextLevels[i] = (nextLevels[i] ?? 0) + 1;
 
-        const nextPondGen = getFishGen(state.pondLevels, nextLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
-        const nextTargetCostPond = getPondUpgradeCost(target.value.index, state.pondLevels[target.value.index] ?? 0, state.pondLevels, nextLevels, state.fisherooLevels);
+          const nextPondGen = getFishGen(state.pondLevels, nextLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
+          const nextTargetCostPond = getPondUpgradeCost(target.value.index, state.pondLevels[target.value.index] ?? 0, state.pondLevels, nextLevels, state.fisherooLevels);
 
-        const nextBluefinTargetTime = nextPondGen > 0 ? (nextTargetCostPond - state.currentFish) / nextPondGen : Infinity;
+          const nextBluefinTargetTime = nextPondGen > 0 ? (nextTargetCostPond - state.currentFish) / nextPondGen : Infinity;
 
-        timeSaved = (currentBluefinTargetTime - nextBluefinTargetTime) * 60;
-        efficiency = (cost > 0 && timeSaved > 0) ? timeSaved / cost : 0;
+          timeSaved = isFinite(currentBluefinTargetTime) ? (currentBluefinTargetTime - nextBluefinTargetTime) * 60 : 0;
+          efficiency = (cost > 0 && timeSaved > 0) ? timeSaved / cost : 0;
+        } else if (i === 1 || i === 6) {
+          const currentLv = state.tarLevels[i] ?? 0;
+          const capLvl = i === 1 ? 72 : 93;
+
+          if (currentLv < capLvl && maxDirectEfficiency > 0) {
+            const basePotential = i === 1 ? 0.0625 : 0.002258 * Math.pow(1 - (currentLv / capLvl), 2);
+            timeSaved = basePotential * HORIZON * maxDirectEfficiency * 0.2;
+            efficiency = cost > 0 ? timeSaved / cost : 0;
+          }
+        } else if (i === 4) {
+          const currentLv = state.tarLevels[4] ?? 0;
+
+          if (avgDirectCost > 0 && cost < avgDirectCost) {
+            efficiency = maxDirectEfficiency * (avgDirectCost / cost);
+            timeSaved = efficiency * cost;
+          } else {
+            const currentTarGen = tarGen.value;
+            const redBonus = 1 + (state.fisherooLevels[3] ?? 0) * 0.04;
+            const blackBonus = 1 + (state.fisherooLevels[4] ?? 0) * 0.2;
+            const totalBlackBonus = blackBonus * redBonus;
+            const mfStatus = state.pondLevels[11] ?? 0;
+            const mf5Factor = mfStatus >= 5 ? 3 : 1;
+            const mf8Factor = mfStatus >= 8 ? 3 : 1;
+            const nextTarGen = 2 * (1 + 0.05 * (currentLv + 1)) * totalBlackBonus * mf5Factor * mf8Factor;
+
+            const deltaGen = (nextTarGen - currentTarGen) / 60;
+            if (deltaGen > 0 && avgDirectEfficiency > 0) {
+              const roiFactor = Math.min(2.0, Math.max(0.1, avgDirectCost / cost));
+              timeSaved = deltaGen * HORIZON * avgDirectEfficiency * roiFactor;
+              efficiency = cost > 0 ? timeSaved / cost : 0;
+            }
+          }
+        }
+      } else if (bluefinGen === 0 && i === 0) {
+        efficiency = 0.000001;
+        timeSaved = Infinity;
       }
 
       return {

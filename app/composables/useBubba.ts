@@ -123,7 +123,7 @@ export const useBubba = () => {
     return Math.max(1, h / 13);
   };
 
-  const calculateOptimalGifts = (startH: number, cps: number, baseMeatRate: number, currentLevels: BubbaLevels, currentOffsets: BubbaLevels) => {
+  const calculateOptimalGifts = (startH: number, cps: number, baseMeatRate: number, currentLevels: BubbaLevels, currentOffsets: BubbaLevels, overrideRizz?: number) => {
     let optH = startH;
     let optimalGifts = 0;
     let optLevels = [...currentLevels];
@@ -132,13 +132,15 @@ export const useBubba = () => {
     const clickDuration = 1 / cps;
 
     while (true) {
-      const cost = getUpgradeCost(simUpgradeIdx, optLevels[simUpgradeIdx] ?? 0, currentOffsets[simUpgradeIdx] ?? 0, optLevels);
+      const cost = getUpgradeCost(simUpgradeIdx, optLevels[simUpgradeIdx] ?? 0, currentOffsets[simUpgradeIdx] ?? 0, optLevels, overrideRizz);
       const hMult = getHMultFromHappiness(optH);
       const yieldVal = 20 * baseMeatRate * hMult;
+
       if (cost > yieldVal) break;
 
       optimalGifts++;
       optLevels[simUpgradeIdx] = (optLevels[simUpgradeIdx] ?? 0) + 1;
+
       const decayStep = getDecayRate(optH) * clickDuration;
       optH = Math.max(0, optH - decayStep);
 
@@ -147,86 +149,47 @@ export const useBubba = () => {
     return optimalGifts;
   };
 
+  /**
+   * Simplified Mega Push estimate for the summary bar.
+   * Assumes a single batch of pats (no doubling technique) and instant purchase of profitable gifts.
+   * Logic matches the "Happiness Meter" (Happiness = Pats * hPerPat).
+   */
   const openGiftMegaPush = computed(() => {
-    const isMF6 = (state.levels[8] ?? 0) >= 6;
-    const getSimulatedCharisma = (overrideEmulsified: number[]) => {
-      const lvs = state.charismaLvs;
-      const superChartLv = state.levels[13] ?? 0;
-      const superChartBonus = 1 + (superChartLv * 0.01);
-      const getEmulsifyFact = (idx: number) => (isMF6 && overrideEmulsified.includes(idx)) ? 3 : 1;
-      return {
-        hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
-        joy: 1 + ((lvs[2] ?? 0) * 0.05 * superChartBonus * getEmulsifyFact(2)),
-      };
-    };
+    const pats = maxPats.value / 2; // Single recharge batch
 
-    const pats = maxPats.value;
-    const cps = 8;
-
-    const isSaved = state.megaPushConfig.isSaved;
-    let phase1Emulsified: number[];
-    if (isSaved) {
-      phase1Emulsified = state.emulsifiedIndices.filter(i => i > 2);
-      if (state.megaPushConfig.emulsifyJoyBefore) phase1Emulsified.push(2);
-    } else {
-      phase1Emulsified = [...state.emulsifiedIndices];
-    }
-
-    const charBonusP1 = getSimulatedCharisma(phase1Emulsified);
+    // Instant happiness calculation (matching current UI Meter logic)
+    const bonuses = charismaBonuses.value;
     const joyFactor = state.selectedGifts.includes(1) ? 1.5 : 1;
-    const hPerPat = (state.levels[1] ?? 0) * charBonusP1.joy * joyFactor;
+    const hPerPat = (state.levels[1] ?? 0) * bonuses.joy * joyFactor;
+    const currentH = pats * hPerPat;
 
-    let currentH = 0;
-    const simulatePats = () => {
-      for (let i = 0; i < pats; i++) {
-        currentH += hPerPat;
-        const decayStep = getDecayRate(currentH) * (1 / cps);
-        currentH = Math.max(0, currentH - decayStep);
-      }
-    };
-    simulatePats();
+    const hMult = getHMultFromHappiness(currentH);
+    const baseMeatRate = getMeatGen(state.levels, 1); // Get rate per minute (hMult=1)
 
-    const charBonusP3 = getSimulatedCharisma(phase1Emulsified);
-    const baseSlices = ((state.levels[0] ?? 0) * 1) + ((state.levels[7] ?? 0) * 6) + ((state.levels[23] ?? 0) * 50);
+    // Instant profitable gift calculation (no decay and no CPS dependency)
+    let totalProfit = 0;
+    let optimalCount = 0;
+    let simLevels = [...state.levels];
 
-    const D84 = ((state.levels[2] ?? 0) * 2) + (8 * (state.levels[11] ?? 0)) + ((state.levels[19] ?? 0) * 25) + 100;
-    const totalLv = state.levels.reduce((a, b) => a + b, 0);
-    const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
-    const poppyMult = 1 + ((state.levels[24] ?? 0) * 0.05 * state.poppyFishPower);
-    const coinsMult = spareCoinsMulti.value * (1 + (state.levels[21] ?? 0) / 100);
-    const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((state.levels[17] ?? 0) / 100)) : 1;
-    const baseMeatRate = baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * poppyMult * beegSliceMult;
+    while (true) {
+      const cost = getUpgradeCost(10, simLevels[10] ?? 0, state.mindfulOffsets[10] ?? 0, simLevels, bonuses.rizz);
+      const yieldAmt = 20 * baseMeatRate * hMult;
 
-    const optimalCount = calculateOptimalGifts(currentH, cps, baseMeatRate, state.levels, state.mindfulOffsets);
+      if (cost > yieldAmt) break;
 
-    let totalYield = 0;
-    let simH = currentH;
+      totalProfit += (yieldAmt - cost);
+      optimalCount++;
+      simLevels[10] = (simLevels[10] ?? 0) + 1;
 
-    const moveTime = 0.5;
-    const stepSize = 0.1;
-
-    let t = 0;
-    while (t < moveTime) {
-      const dt = Math.min(stepSize, moveTime - t);
-      const decayStep = getDecayRate(simH) * dt;
-      simH = Math.max(0, simH - decayStep);
-      t += dt;
+      if (optimalCount > 1000) break;
     }
 
-    for (let i = 0; i < optimalCount; i++) {
-      const hMult = getHMultFromHappiness(simH);
-      totalYield += 20 * baseMeatRate * hMult;
-      const decayStep = getDecayRate(simH) * (1 / cps);
-      simH = Math.max(0, simH - decayStep);
-    }
-
-    return { count: optimalCount, yield: totalYield };
+    return { count: optimalCount, yield: totalProfit };
   });
 
   const megaPushSimulation = computed(() => {
     const config = state.megaPushConfig;
     const joyFactor = state.selectedGifts.includes(1) ? 1.5 : 1;
-
     const isMF6 = (state.levels[8] ?? 0) >= 6;
 
     const getSimulatedCharisma = (overrideEmulsified: number[]) => {
@@ -236,12 +199,12 @@ export const useBubba = () => {
       const getEmulsifyFact = (idx: number) => (isMF6 && overrideEmulsified.includes(idx)) ? 3 : 1;
       return {
         hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
+        rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
         joy: 1 + ((lvs[2] ?? 0) * 0.05 * superChartBonus * getEmulsifyFact(2)),
       };
     };
 
     const isSaved = state.megaPushConfig.isSaved;
-
     let phase1Emulsified: number[];
     if (isSaved) {
       phase1Emulsified = state.emulsifiedIndices.filter(i => i > 2);
@@ -249,7 +212,6 @@ export const useBubba = () => {
     } else {
       phase1Emulsified = [...state.emulsifiedIndices];
     }
-
 
     const charBonusP1 = getSimulatedCharisma(phase1Emulsified);
     const hPerPat = (state.levels[1] ?? 0) * charBonusP1.joy * joyFactor;
@@ -286,11 +248,6 @@ export const useBubba = () => {
     };
 
     simulatePats(batch1Count);
-
-    if (batch1Count > 0 && batch2Count > 0) {
-      simulateDecay(moveTime);
-    }
-
     simulatePats(batch2Count);
 
     let phase2Emulsified = [...phase1Emulsified];
@@ -298,50 +255,33 @@ export const useBubba = () => {
 
     if (config.emulsifyHustleAfter) {
       if (!phase2Emulsified.includes(0)) {
-        timeSpentSwitching += moveTime * 2 + (2 / cps);
+        timeSpentSwitching += moveTime + (2 / cps);
         phase2Emulsified.push(0);
       }
-    } else {
-      if (phase2Emulsified.includes(0)) {
-        timeSpentSwitching += moveTime * 2 + (2 / cps);
-        phase2Emulsified = phase2Emulsified.filter(i => i !== 0);
-      }
+    } else if (phase2Emulsified.includes(0)) {
+      timeSpentSwitching += moveTime + (2 / cps);
+      phase2Emulsified = phase2Emulsified.filter(i => i !== 0);
     }
 
     if (config.emulsifyRizzAfter) {
       if (!phase2Emulsified.includes(1)) {
-        timeSpentSwitching += moveTime * 2 + (2 / cps);
+        timeSpentSwitching += moveTime + (2 / cps);
         phase2Emulsified.push(1);
       }
-    } else {
-      if (phase2Emulsified.includes(1)) {
-        timeSpentSwitching += moveTime * 2 + (2 / cps);
-        phase2Emulsified = phase2Emulsified.filter(i => i !== 1);
-      }
+    } else if (phase2Emulsified.includes(1)) {
+      timeSpentSwitching += moveTime + (2 / cps);
+      phase2Emulsified = phase2Emulsified.filter(i => i !== 1);
     }
 
-    if (timeSpentSwitching > 0) {
-      const stepSize = 0.1;
-      let t = 0;
-      while (t < timeSpentSwitching) {
-        const dt = Math.min(stepSize, timeSpentSwitching - t);
-        const decayStep = getDecayRate(currentH) * dt;
-        currentH = Math.max(0, currentH - decayStep);
-        t += dt;
-      }
-    }
+    if (timeSpentSwitching > 0) simulateDecay(timeSpentSwitching);
 
     const charBonusP3 = getSimulatedCharisma(phase2Emulsified);
-
     const baseSlices = ((state.levels[0] ?? 0) * 1) + ((state.levels[7] ?? 0) * 6) + ((state.levels[23] ?? 0) * 50);
     const D84 = ((state.levels[2] ?? 0) * 2) + (8 * (state.levels[11] ?? 0)) + ((state.levels[19] ?? 0) * 25) + 100;
-    const totalLv = state.levels.reduce((a, b) => a + b, 0);
-    const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
-    const poppyMult = 1 + ((state.levels[24] ?? 0) * 0.05 * state.poppyFishPower);
+    const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (state.levels.reduce((a, b) => a + b, 0) / 100) : 1;
     const coinsMult = spareCoinsMulti.value * (1 + (state.levels[21] ?? 0) / 100);
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((state.levels[17] ?? 0) / 100)) : 1;
-
-    const baseMeatRate = baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * poppyMult * beegSliceMult;
+    const baseMeatRate = baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * (1 + ((state.levels[24] ?? 0) * 0.05 * state.poppyFishPower)) * beegSliceMult;
 
     let totalGrossYield = 0;
     let totalGiftCost = 0;
@@ -350,68 +290,23 @@ export const useBubba = () => {
     let simLevels = [...state.levels];
 
     for (let i = 0; i < giftsToOpen; i++) {
-      if (i === 0) {
-        const startDelay = moveTime;
-        const stepSize = 0.1;
-        let t = 0;
-        while (t < startDelay) {
-          const dt = Math.min(stepSize, startDelay - t);
-          const decayStep = getDecayRate(simH) * dt;
-          simH = Math.max(0, simH - decayStep);
-          t += dt;
-        }
-      }
+      if (i === 0) simulateDecay(moveTime);
 
       const currentOpenGiftLv = simLevels[10] ?? 0;
-      totalGiftCost += getUpgradeCost(10, currentOpenGiftLv, state.mindfulOffsets[10] ?? 0, simLevels);
-
+      totalGiftCost += getUpgradeCost(10, currentOpenGiftLv, state.mindfulOffsets[10] ?? 0, simLevels, charBonusP3.rizz);
       simLevels[10] = currentOpenGiftLv + 1;
 
       const currenttotalLv = simLevels.reduce((a, b) => a + b, 0);
       const currentMf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (currenttotalLv / 100) : 1;
       const currentMeatRate = (baseMeatRate / mf1Mult) * currentMf1Mult;
 
-      const hMult = getHMultFromHappiness(simH);
-      totalGrossYield += 20 * currentMeatRate * hMult;
-
-      const clickDuration = 1 / cps;
-      const decayStep = getDecayRate(simH) * clickDuration;
-      simH = Math.max(0, simH - decayStep);
+      totalGrossYield += 20 * currentMeatRate * getHMultFromHappiness(simH);
+      simH = Math.max(0, simH - getDecayRate(simH) * (1 / cps));
     }
 
     let optH = currentH;
-    let optimalGifts = 0;
-    let optLevels = [...state.levels];
-    let simUpgradeIdx = 10;
-
-    {
-      const startDelay = moveTime;
-      const stepSize = 0.1;
-      let t = 0;
-      while (t < startDelay) {
-        const dt = Math.min(stepSize, startDelay - t);
-        const decayStep = getDecayRate(optH) * dt;
-        optH = Math.max(0, optH - decayStep);
-        t += dt;
-      }
-    }
-
-    while (true) {
-      const cost = getUpgradeCost(simUpgradeIdx, optLevels[simUpgradeIdx] ?? 0, state.mindfulOffsets[simUpgradeIdx] ?? 0, optLevels);
-      const hMult = getHMultFromHappiness(optH);
-      const yieldVal = 20 * baseMeatRate * hMult;
-
-      if (cost > yieldVal) break;
-
-      optimalGifts++;
-      optLevels[simUpgradeIdx] = (optLevels[simUpgradeIdx] ?? 0) + 1;
-
-      const clickDuration = 1 / cps;
-      const decayStep = getDecayRate(optH) * clickDuration;
-      optH = Math.max(0, optH - decayStep);
-
-      if (optimalGifts > 1000) break;
-    }
+    simulateDecay(moveTime);
+    const optimalGifts = calculateOptimalGifts(optH, cps, baseMeatRate, state.levels, state.mindfulOffsets, charBonusP3.rizz);
 
     return {
       totalYield: totalGrossYield - totalGiftCost,
@@ -421,16 +316,16 @@ export const useBubba = () => {
     };
   });
 
-  const getCostReduction = (levels: BubbaLevels) => {
-    const rizz = charismaBonuses.value.rizz;
+  const getCostReduction = (levels: BubbaLevels, overrideRizz?: number) => {
+    const rizz = overrideRizz !== undefined ? overrideRizz : charismaBonuses.value.rizz;
     const bargainDisc = 1 - 1 / (1 + 0.01 * (levels[4] ?? 0));
     const costSaverDisc = 1 - 1 / (1 + 0.02 * (levels[18] ?? 0));
     const permaSaleDisc = 1 - 1 / (1 + 0.04 * (levels[26] ?? 0));
     return (1 - rizz) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc);
   };
 
-  const getUpgradeCost = (index: number, lv: number, offset: number, prodLevels: BubbaLevels) => {
-    const reduction = getCostReduction(prodLevels);
+  const getUpgradeCost = (index: number, lv: number, offset: number, prodLevels: BubbaLevels, overrideRizz?: number) => {
+    const reduction = getCostReduction(prodLevels, overrideRizz);
     const costLv = Math.max(0, lv - offset);
     const term1 = Math.pow(index + 1, 2) * costLv;
     const term2 = Math.pow(2.4 + index / 3.65, index) * Math.pow(FACTORS[index] ?? 1, costLv);
@@ -559,7 +454,6 @@ export const useBubba = () => {
       }
 
       if (i === 13) {
-        // Super Chart Speedup
         const scBonusCurrent = 1 + 0.01 * (state.levels[i] ?? 0);
         const delta = 0.01;
 

@@ -8,13 +8,18 @@ const poppyInputDisplay = ref("");
 
 const isHelpOpen = ref(false);
 
-watch(() => state.currentMeat, (v) => meatInputDisplay.value = formatNumber(v), { immediate: true });
+watch(() => state.currentMeat, (v) => {
+  if (parseNumber(meatInputDisplay.value) !== v) {
+    meatInputDisplay.value = formatNumber(v);
+  }
+}, { immediate: true });
 watch(() => state.poppyFishPower, (v) => {
   poppyInputDisplay.value = v > 0 ? formatNumber(Math.round(Math.pow(10, v))) : "0";
 }, { immediate: true });
 
 const handleInput = (e: Event) => {
   const val = (e.target as HTMLInputElement).value;
+  meatInputDisplay.value = val;
   const parsed = parseNumber(val);
   if (!isNaN(parsed)) state.currentMeat = Math.max(0, parsed);
 };
@@ -86,22 +91,25 @@ const hTiers = [
 
 const currentTier = computed(() => {
   const m = currentHMult.value;
-  return hTiers.find(t => m >= t.min && m < t.max) || hTiers[hTiers.length - 1];
+  return hTiers.find(t => m >= t.min && m < t.max) || hTiers[hTiers.length - 1] || hTiers[0];
 });
 
 const happinessBarHeight = computed(() => {
   const m = currentHMult.value;
   const t = currentTier.value;
+  if (!t) return '0%';
   const progress = Math.max(0, m - t.min);
-  return `${Math.min(100, (progress / (t.max - t.min)) * 100)}%`;
+  return `${Math.min(100, (progress / Math.max(0.1, t.max - t.min)) * 100)}%`;
 });
 
 const radarPoints = computed(() => {
   const center = 75, maxRadius = 55, angles = [240, 300, 0, 60, 120, 180];
   if (state.charismaLvs.every(v => v === 0)) return `${center},${center}`;
   return state.charismaLvs.map((lv, i) => {
-    const r = Math.min(maxRadius, (lv / 120) * maxRadius + (lv > 0 ? 3 : 0));
-    return `${center + r * Math.cos(angles[i] * Math.PI/180)},${center + r * Math.sin(angles[i] * Math.PI/180)}`;
+    const safeLv = lv || 0;
+    const r = Math.min(maxRadius, (safeLv / 120) * maxRadius + (safeLv > 0 ? 3 : 0));
+    const angle = angles[i] ?? 0;
+    return `${center + r * Math.cos(angle * Math.PI/180)},${center + r * Math.sin(angle * Math.PI/180)}`;
   }).join(' ');
 });
 
@@ -220,9 +228,9 @@ const recommendedUpgrades = computed(() => {
 
       <div class="bonus-row">
         <div class="bonus-box happiness-meter">
-          <div class="meter-title" :style="{ color: currentTier.color }">{{ currentTier.name.toUpperCase() }}</div>
+          <div class="meter-title" :style="{ color: currentTier?.color }">{{ currentTier?.name?.toUpperCase() }}</div>
           <div class="meter-main">
-            <div class="meter-bar"><div class="meter-fill" :style="{ height: happinessBarHeight, backgroundColor: currentTier.color }"></div></div>
+            <div class="meter-bar"><div class="meter-fill" :style="{ height: happinessBarHeight, backgroundColor: currentTier?.color }"></div></div>
             <div class="meter-controls">
               <button @click="state.activePats = Math.min(maxPats, state.activePats + 1)" class="pat-btn">▲</button>
               <div class="pat-label-container">
@@ -257,7 +265,7 @@ const recommendedUpgrades = computed(() => {
           <div class="gifts-slots">
             <div v-for="slot in [0, 1]" :key="slot" class="gift-slot">
               <button @click="cycleGift(slot, 1)" class="pat-btn">▲</button>
-              <div class="gift-img-box"><img v-if="state.selectedGifts[slot] !== -1" :src="`/bubba/gift-${state.selectedGifts[slot] + 1}.png`" class="gift-icon" /><span v-else class="none-text">NONE</span></div>
+              <div class="gift-img-box"><img v-if="state.selectedGifts[slot] !== undefined && state.selectedGifts[slot] !== -1" :src="`/bubba/gift-${(state.selectedGifts[slot] ?? 0) + 1}.png`" class="gift-icon" /><span v-else class="none-text">NONE</span></div>
               <button @click="cycleGift(slot, -1)" class="pat-btn">▼</button>
             </div>
           </div>
@@ -268,7 +276,7 @@ const recommendedUpgrades = computed(() => {
             <div v-for="n in Math.min(diceStats.count, state.diceValues.length)" :key="n" class="die-slot">
               <button @click="cycleDiceValue(n-1, 1)" class="pat-btn">▲</button>
               <div class="die-img-box">
-                <img v-if="state.diceValues[n-1] > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`"/>
+                <img v-if="(state.diceValues[n-1] ?? 0) > 0" :src="`/bubba/dice-${state.diceValues[n-1]}.png`"/>
                 <span v-else class="none-text">NONE</span>
               </div>
               <button @click="cycleDiceValue(n-1, -1)" class="pat-btn">▼</button>
@@ -349,8 +357,8 @@ const recommendedUpgrades = computed(() => {
         <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" max="10" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
         <div class="btn-group">
-            <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 && !upgradeAnalysis[bestUpgradeIndex] }">
-              {{ bestUpgradeIndex !== -1 && upgradeAnalysis[bestUpgradeIndex] ? 'BUY: ' + upgradeAnalysis[bestUpgradeIndex].name.toUpperCase() : 'WAIT' }}
+            <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 || !upgradeAnalysis[bestUpgradeIndex] }">
+              {{ bestUpgradeIndex !== -1 && upgradeAnalysis[bestUpgradeIndex] ? 'BUY: ' + (upgradeAnalysis[bestUpgradeIndex]?.name ?? '').toUpperCase() : 'WAIT' }}
             </button>
             <button v-if="bestUpgradeIndex !== -1" @click="buyMindful" class="btn-mindful">BUY MINDFUL ✨</button>
         </div>
@@ -369,7 +377,7 @@ const recommendedUpgrades = computed(() => {
           </div>
           <div class="row-cost">
             <div class="cost-container">
-              <span :class="{ 'mindful-active': state.mindfulOffsets[i] > 0 }">{{ formatNumber(upg.cost) }}</span>
+              <span :class="{ 'mindful-active': (state.mindfulOffsets[i] ?? 0) > 0 }">{{ formatNumber(upg.cost) }}</span>
               <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
             </div>
             <div class="cost-adj-controls" v-if="!MINDFUL_RESTRICTED.includes(i)">
@@ -402,7 +410,7 @@ const recommendedUpgrades = computed(() => {
       <section class="mf-section">
         <h3>Megaflesh Tier Bonuses</h3>
         <div class="mf-grid">
-          <div v-for="n in 12" :key="n" class="mf-slot" :style="{ opacity: state.levels[8] >= n ? 1 : 0.2 }"><img :src="`/bubba/mf-${n}.png`" class="mf-icon" /><div v-if="n === 12 && state.levels[8] > 12" class="mf-badge">+{{ state.levels[8] - 12 }}</div></div>
+          <div v-for="n in 12" :key="n" class="mf-slot" :style="{ opacity: (state.levels[8] ?? 0) >= n ? 1 : 0.2 }"><img :src="`/bubba/mf-${n}.png`" class="mf-icon" /><div v-if="n === 12 && (state.levels[8] ?? 0) > 12" class="mf-badge">+{{ (state.levels[8] ?? 0) - 12 }}</div></div>
         </div>
       </section>
       <div><a href='https://ko-fi.com/A0A01RVDGT' target='_blank'><img style="display: block; height:36px; margin: 20px auto 10px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=6" alt="Buy Me a Coffee at ko-fi.com" /></a></div>
@@ -421,7 +429,13 @@ const recommendedUpgrades = computed(() => {
                 <ul style="padding-left: 20px; font-size: 0.8rem; margin-top: 5px;">
                   <li><strong>Pat Value:</strong> The <em>total</em> extra meat yield of one single Pat on Bubba, calculated over its full duration.</li>
                   <li><strong>Time Skip Value:</strong> The meat yield of a <img src="/bubba/time-skip.png" class="help-inline-icon"/> FUNNY 2 HR SLICE time skip. (no happiness multiplier)</li>
-                  <li><strong>Mega Push Value:</strong> A simulation of using <em>all</em> your current meat to buy "Open Gifts" at once with your current happiness multiplier.</li>
+                  <li><strong>Mega Push Value:</strong> The meat yield from using all your available Pats to reach peak happiness, then opening all profitable "Open Gifts".</li>
+                </ul>
+              </li>
+              <li><strong>Mega Push Strategy Configuration:</strong>
+                <ul style="padding-left: 20px; font-size: 0.8rem; margin-top: 5px;">
+                  <li><strong>Strategy Simulation:</strong> Allows you to plan and simulate your Mega Push strategy, such as how many Pats to give before and after pat reset, how many Open Gifts to use, and whether and when to switch emulsifiers. The simulation accounts for the happiness decay that occurs during the time you take to perform each step of the strategy.</li>
+                  <li><strong>CPS Tester:</strong> Measure your actual clicking speed to simulate realistic decay between each pat and gift click.</li>
                 </ul>
               </li>
             </ol>

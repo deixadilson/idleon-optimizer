@@ -12,15 +12,22 @@ onMounted(() => {
   fishInputDisplay.value = formatNumber(state.currentFish);
 });
 
-watch(() => state.currentFish, (v) => fishInputDisplay.value = formatNumber(v));
+watch(() => state.currentFish, (v) => {
+  if (parseNumber(fishInputDisplay.value) !== v) {
+    fishInputDisplay.value = formatNumber(v);
+  }
+});
 
 const handleFishInput = (e: Event) => {
   const val = (e.target as HTMLInputElement).value;
+  fishInputDisplay.value = val;
   const parsed = parseNumber(val);
   if (!isNaN(parsed)) state.currentFish = Math.max(0, parsed);
 };
 
-const handleFishBlur = () => { fishInputDisplay.value = formatNumber(state.currentFish); };
+const handleFishBlur = () => { 
+  fishInputDisplay.value = formatNumber(state.currentFish); 
+};
 
 const bestPondIndex = computed(() => {
   let bestIdx = -1, maxEff = 0;
@@ -96,7 +103,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
             </button>
         </div>
       </section>
-
+      <div class="best-upg-hidden">{{ (POND_UPGRADE_NAMES[bestPondIndex] ?? '').toUpperCase() }}</div>
       <section class="grid-section">
         <main class="upgrade-grid">
           <div v-for="(upg, i) in pondUpgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestPondIndex, 'target-row': i === target.index }">
@@ -131,7 +138,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
             </button>
         </div>
       </section>
-
+      <div class="best-upg-hidden">{{ (TAR_UPGRADE_NAMES[bestTarIndex] ?? '').toUpperCase() }}</div>
       <section class="grid-section shadow-grid">
         <main class="upgrade-grid tar-grid">
           <div v-for="(upg, i) in tarUpgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestTarIndex }">
@@ -140,7 +147,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
               <span class="upg-title">{{ (upg.name ?? '').toUpperCase() }}</span>
             </div>
             <div class="row-mid-refactor">
-              <span v-if="upg.efficiency > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
+              <span v-if="upg.timeSaved > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
               <span v-else>--</span>
             </div>
             <div class="row-bottom-refactor">
@@ -229,6 +236,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
               <li><strong>Tartar Fish:</strong> The optimizer currently only recommends Tartar upgrades that directly reduce the time to your Bluefin target. Other Tartar upgrades should be bought according to your own discretion.</li>
               <li><strong>Advanced Bonuses:</strong> Make sure to fill your <strong>Go Go Secret Kangaroo Mouse</strong> bonus and <strong>Gambit</strong> bonus as they significantly impact generation rate calculations.</li>
               <li><strong>Shiny Fish:</strong> Also don't forget to update your <strong>Shiny Multipliers</strong> manually as they are a massive multiplicative factor for your Bluefin generation.</li>
+              <li><strong>Reset Upgrades:</strong> The App will not recommend purchasing <strong>Fisheroo Investing</strong> and <strong>Tarrific Resets</strong> upgrades. Remember to buy them before each reset!</li>
             </ol>
           </div>
           <button @click="isHelpOpen = false" class="btn-close-help">GOT IT!</button>
@@ -245,7 +253,7 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .page-title-row { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; padding-top: 10px; }
 .page-title { font-size: 1.4rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
 
-.buy-section { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 25px; width: 100%; }
+.buy-section { background: #1e293b; padding: 15px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 5px; width: 100%; }
 .buy-section h3 { text-align: center; margin-bottom: 15px; color: #38bdf8; text-transform: uppercase; font-size: 1rem; font-weight: bold; }
 .total-mult-footer { text-align: center; font-size: 1rem; color: #fff; font-weight: 900; margin-top: 15px; text-shadow: 1.5px 1.5px 0 #000; }
 .settings-bar-inner { display: flex; justify-content: space-between; align-items: end; width: 100%; gap: 20px; flex-wrap: wrap; padding: 0 5px; }
@@ -315,4 +323,5 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .help-modal-box strong { color: #f8fafc; }
 .btn-close-help { margin-top: 20px; width: 100%; background: #38bdf8; color: #000; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; }
 .btn-close-help:hover { filter: brightness(1.1); }
+.best-upg-hidden { color: transparent; height: 15px; }
 </style>
