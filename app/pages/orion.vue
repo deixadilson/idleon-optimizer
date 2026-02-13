@@ -29,8 +29,8 @@ const handleBlur = () => {
 
 const buyBest = () => {
   const idx = bestUpgradeIndex.value;
-  if (idx !== -1 && upgradeAnalysis.value[idx] && state.levels[idx]) {
-    state.currentFeathers = Math.max(0, state.currentFeathers - upgradeAnalysis.value[idx].cost);
+  if (idx !== -1 && upgradeAnalysis.value[idx] && state.levels[idx] !== undefined) {
+    state.currentFeathers = Math.max(0, state.currentFeathers - upgradeAnalysis.value[idx]!.cost);
     state.levels[idx]++;
   }
 };
@@ -72,31 +72,40 @@ const buyBest = () => {
         </button>
       </div>
 
-      <main class="upgrade-list">
-        <div v-for="(upg, i) in upgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestUpgradeIndex, 'target-row': i === target.index }">
-          <div class="upg-icon-container">
-            <img :src="upg.icon" class="upg-icon" />
-          </div>
-          <div class="upg-info">
-            <div class="upg-name-row">
-              <span class="upg-name">{{ upg.name.toUpperCase() }}</span>
-              <span class="upg-cost">Cost: {{ formatNumber(upg.cost) }}</span>
+      <section class="grid-section">
+        <main class="upgrade-grid">
+          <div v-for="(upg, i) in upgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestUpgradeIndex, 'target-row': i === target.index }">
+            <div class="row-top">
+              <div class="upg-icon-box">
+                <img :src="upg.icon" />
+              </div>
+              <span class="upg-title">{{ upg.name.toUpperCase() }}</span>
             </div>
-            <p class="upg-desc">{{ upg.description }}</p>
+            <div class="row-mid-refactor">
+              <div class="upg-mid-box">
+                <div class="upg-desc-compact">{{ upg.description }}</div>
+                <div class="time-variation">
+                  <span v-if="i === 4 || i === 8" class="target-label">TARGET</span>
+                  <template v-else>
+                    <span v-if="upg.timeSaved > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
+                    <span v-else-if="upg.timeSaved < 0" class="neg">+{{ formatTime(Math.abs(upg.timeSaved)) }}</span>
+                    <span v-else>--</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <div class="row-bottom-refactor">
+              <div class="level-box-mini">
+                <input type="number" v-model.number="state.levels[i]" min="0" />
+              </div>
+              <div class="cost-container-mini">
+                <span>{{ formatNumber(upg.cost) }}</span>
+                <img src="/orion/upg-0.png" class="feather-mini-icon" />
+              </div>
+            </div>
           </div>
-          <div class="upg-input-container">
-            <input type="number" v-model.number="state.levels[i]" />
-          </div>
-          <div class="upg-diff">
-            <span v-if="i === 4 || i === 8" class="target-label">TARGET</span>
-            <template v-else>
-              <span v-if="upg.timeSaved > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
-              <span v-else-if="upg.timeSaved < 0" class="neg">+{{ formatTime(Math.abs(upg.timeSaved)) }}</span>
-              <span v-else>--</span>
-            </template>
-          </div>
-        </div>
-      </main>
+        </main>
+      </section>
 
       <section class="mf-section">
         <h3>Megafeather Bonuses</h3>
@@ -165,23 +174,55 @@ const buyBest = () => {
   background: #334155;
   color: white;
 }
-.upgrade-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
-.upgrade-card { background: #1e293b; display: grid; grid-template-columns: 60px 1fr 100px 120px; align-items: center; padding: 12px 20px; border-radius: 10px; border: 1px solid #334155; }
-.upgrade-card.best { border-color: #4ade80; background: #142a20; }
-.target-row { border-left: 5px solid #38bdf8; }
-.upg-icon { width: 40px; height: 40px; object-fit: contain; }
-.upg-info { display: flex; flex-direction: column; padding: 0 15px; }
-.upg-name-row { display: flex; align-items: baseline; gap: 15px; }
-.upg-name { font-weight: bold; font-size: 1rem; color: #fff; }
-.upg-cost { font-size: 0.8rem; color: #38bdf8; font-family: monospace; }
-.upg-desc { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin: 0; }
-.upg-input-container input { width: 100%; background: #0f172a; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; text-align: center; font-weight: bold; }
-.upg-diff { text-align: right; font-family: monospace; font-weight: bold; }
-.pos { color: #4ade80; } .neg { color: #f87171; } .target-label { color: #38bdf8; font-size: 0.7rem; }
-.btn-auto { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-.btn-wait { background: #444; cursor: not-allowed; }
-.mf-grid { grid-template-columns: repeat(10, 1fr); }
 
+.grid-section { width: 100%; margin-bottom: 30px; }
+.upgrade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #000; border: 2px solid #000; border-radius: 4px; overflow: hidden; }
+.upgrade-card { background: #9c5b3d; border: 1px solid #334155; display: flex; flex-direction: column; padding: 10px; position: relative; gap: 5px; }
+.upgrade-card.best { border-color: #10b981; background: #14532d; }
+.target-row { border-left: 5px solid #38bdf8 !important; }
+
+.row-top { display: flex; align-items: center; gap: 8px; }
+.upg-icon-box { height: 43px; display: flex; align-items: center; justify-content: center; }
+.upg-title { font-size: 0.95rem; font-weight: 900; color: #fff; text-shadow: 1.5px 1.5px 0 #000; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+
+.row-mid-refactor { display: flex; align-items: center; justify-content: center; text-shadow: 2px 2px 2px #000; min-height: 60px; }
+.upg-mid-box { background: rgba(0, 0, 0, 0.25); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 2px; }
+.upg-desc-compact { font-size: 0.7rem; color: #fff; font-style: italic; text-align: center; line-height: 1.2; white-space: pre-line; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
+.time-variation { font-size: 1rem; font-weight: 900; font-family: monospace; }
+.pos { color: #4ade80; } .neg { color: #f87171; } .target-label { color: #38bdf8; }
+
+.row-bottom-refactor { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); margin: 0 2px; }
+.level-box-mini { width: 60px; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+.level-box-mini input { width: 100%; background: transparent; border: none; font-size: 1rem; text-align: center; color: #fff; outline: none; font-weight: bold; padding: 4px 0; }
+
+.cost-container-mini { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 1.05rem; color: #fff; text-shadow: 1.5px 1.5px 0 #000; font-weight: bold; font-family: monospace; }
+.feather-mini-icon { width: 16px; height: 16px; }
+
+.settings-bar { display: flex; gap: 15px; flex-wrap: wrap; background: #1e293b; padding: 15px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 20px; align-items: flex-end; }
+.input-group { display: flex; flex-direction: column; gap: 5px; }
+.input-group label { font-size: 0.75rem; color: #94a3b8; font-weight: bold; }
+.styled-input { background: #0f172a; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; }
+
+.btn-auto { background: #10b981; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+.btn-wait { background: #444; cursor: not-allowed; }
+
+.mf-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
+.mf-slot { position: relative; display: flex; justify-content: center; align-items: center; }
+.mf-icon { width: 50px; height: 50px; }
+.mf-badge { position: absolute; bottom: -5px; right: -5px; background: #38bdf8; color: #000; font-size: 0.7rem; padding: 2px 5px; border-radius: 10px; font-weight: bold; }
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 .help-modal-box {
   background: #1e293b;
   padding: 30px;
@@ -228,17 +269,5 @@ const buyBest = () => {
 }
 .btn-close-help:hover {
   filter: brightness(1.1);
-}
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
 }
 </style>

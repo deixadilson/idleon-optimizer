@@ -68,25 +68,25 @@ export const useOrion = () => {
     switch (index) {
       case 0: {
         const red = (levels[0] / (levels[0] + 100)) * 100;
-        const redText = mfLv >= 3 ? `, and lowers all costs by ${red.toFixed(1)}%` : "";
+        const redText = mfLv >= 3 ? `\nand lowers all costs by ${red.toFixed(1)}%` : "";
         return `Generates +${formatNumber(levels[0])} feather per second${redText}`;
       }
-      case 1: return `Gain a permanent bonus in the real game! This upgrade never resets.`;
+      case 1: return `Gain a permanent bonus in the real game!\nThis upgrade never resets.`;
       case 2: return `Boosts feather generation by +${formatNumber(levels[2] * 5)}%`;
       case 3: {
         const red = (levels[3] / (levels[3] + 10)) * 100;
-        const bonus = mfLv >= 5 ? ` (+${formatNumber(levels[3] * 2)} f/s)` : "";
+        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[3] * 2)} f/s)` : "";
         return `All feather upgrades are ${red.toFixed(1)}% cheaper.${bonus}`;
       }
-      case 4: return `Reset almost all Upgrades and Feathers. Generate ${formatNumber(Math.pow(mfLv >= 7 ? 5 : 3, levels[4]))}x Feathers`;
+      case 4: return `Reset almost all Upgrades and Feathers.\nGenerate ${formatNumber(Math.pow(mfLv >= 7 ? 5 : 3, levels[4]))}x Feathers`;
       case 5: return `Generates +${formatNumber(levels[5] * 5)} more feathers per second`;
-      case 6: return `Rare chance for Shiny Feather, each one gives +${levels[6]}% feather generation`;
+      case 6: return `Rare chance for Shiny Feather,\neach one gives +${levels[6]}% feather generation`;
       case 7: {
         const red = levels[7] * 20;
-        const bonus = mfLv >= 5 ? ` (+${formatNumber(levels[7] * 4)} f/s)` : "";
+        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[7] * 4)} f/s)` : "";
         return `All feather upgrades are ${formatNumber(red)}% cheaper.${bonus}`;
       }
-      case 8: return `Reset almost everything. Gain a permanent Megafeather`;
+      case 8: return `Reset almost everything.\nGain a permanent Megafeather`;
       default: return "";
     }
   };

@@ -179,14 +179,19 @@ export const usePoppy = () => {
     const currentTotalBurden = currentTargetCost + futureBurdenCost;
     const currentTimeToBurden = rawGen > 0 ? (currentTotalBurden - state.currentFish) / rawGen : Infinity;
 
-    const directPondIndices = [0, 1, 5, 7, 10];
+    const directPondIndices = [0, 1, 4, 5];
     let maxPondDirectEfficiency = 0;
+    let avgPondDirectCost = 0;
 
     if (rawGen > 0 && isFinite(currentTimeToBurden)) {
+      let totalPondCost = 0;
+      let count = 0;
       directPondIndices.forEach(idx => {
-        const bCost = getPondUpgradeCost(idx, state.pondLevels[idx] ?? 0);
+        const lv = state.pondLevels[idx] ?? 0;
+        const bCost = getPondUpgradeCost(idx, lv);
+
         const nLvs = [...state.pondLevels];
-        nLvs[idx] = (nLvs[idx] ?? 0) + 1;
+        nLvs[idx] = lv + 1;
         const nGen = getFishGen(nLvs, state.tarLevels, state.fisherooLevels, state.goGoSecretKangaroo, state.gambitBonus);
         const nTgtCost = getPondUpgradeCost(targetIdx, nLvs[targetIdx] ?? 0, nLvs, state.tarLevels);
         const fAfter = state.currentFish - bCost;
@@ -196,7 +201,13 @@ export const usePoppy = () => {
         const tSaved = isFinite(currentTimeToBurden) ? (currentTimeToBurden - nTimeToBurden) * 60 : 0;
         const eff = (bCost > 0) ? tSaved / bCost : 0;
         if (eff > maxPondDirectEfficiency) maxPondDirectEfficiency = eff;
+
+        if (lv > 0) {
+          totalPondCost += bCost;
+          count++;
+        }
       });
+      avgPondDirectCost = count > 0 ? totalPondCost / count : 0;
     }
 
     return POND_UPGRADE_NAMES.map((name, i) => {
@@ -205,9 +216,8 @@ export const usePoppy = () => {
       let efficiency = 0;
 
       if (i === 2 || i === 8) {
-        const potential = 0.05;
         const weight = 0.30;
-        timeSaved = potential * 1440 * maxPondDirectEfficiency * weight;
+        timeSaved = maxPondDirectEfficiency * (avgPondDirectCost * weight);
         efficiency = buyCost > 0 ? timeSaved / buyCost : 0;
       } else {
         const nextLevels = [...state.pondLevels];
@@ -292,12 +302,13 @@ export const usePoppy = () => {
           timeSaved = isFinite(currentBluefinTargetTime) ? (currentBluefinTargetTime - nextBluefinTargetTime) * 60 : 0;
           efficiency = (cost > 0 && timeSaved > 0) ? timeSaved / cost : 0;
         } else if (i === 1 || i === 6) {
+          // Tar Pit Shiny Upgrades (Bargain at 20% of market average)
           const currentLv = state.tarLevels[i] ?? 0;
           const capLvl = i === 1 ? 72 : 93;
 
           if (currentLv < capLvl && maxDirectEfficiency > 0) {
-            const basePotential = i === 1 ? 0.0625 : 0.002258 * Math.pow(1 - (currentLv / capLvl), 2);
-            timeSaved = basePotential * HORIZON * maxDirectEfficiency * 0.2;
+            const weight = 0.20;
+            timeSaved = maxDirectEfficiency * (avgDirectCost * weight);
             efficiency = cost > 0 ? timeSaved / cost : 0;
           }
         } else if (i === 4) {
