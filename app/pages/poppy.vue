@@ -108,19 +108,29 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
         <main class="upgrade-grid">
           <div v-for="(upg, i) in pondUpgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestPondIndex, 'target-row': i === target.index }">
             <div class="row-top">
-              <img :src="upg.icon" class="upg-icon-mini" />
+              <div class="upg-icon-box">
+                <img :src="upg.icon" />
+              </div>
               <span class="upg-title">{{ (upg.name ?? '').toUpperCase() }}</span>
             </div>
             <div class="row-mid-refactor">
-              <span v-if="i === 6 || i === 11" class="target-label">TARGET</span>
-              <template v-else>
-                  <span v-if="(upg.timeSaved ?? 0) > 0" class="pos">-{{ formatTime(upg.timeSaved ?? 0) }}</span>
-                  <span v-else-if="(upg.timeSaved ?? 0) < 0" class="neg">+{{ formatTime(Math.abs(upg.timeSaved ?? 0)) }}</span>
-                  <span v-else>--</span>
-              </template>
+              <div class="upg-mid-box">
+                <div class="upg-desc-compact">{{ upg.description }}</div>
+                <div class="time-variation">
+                  <span v-if="i === 6 || i === 11" class="target-label">TARGET</span>
+                  <template v-else>
+                      <span v-if="(upg.timeSaved ?? 0) > 0" class="pos">-{{ formatTime(upg.timeSaved ?? 0) }}</span>
+                      <span v-else-if="(upg.timeSaved ?? 0) < 0" class="neg">+{{ formatTime(Math.abs(upg.timeSaved ?? 0)) }}</span>
+                      <span v-else>--</span>
+                  </template>
+                </div>
+              </div>
             </div>
             <div class="row-bottom-refactor">
-              <div class="level-box-mini"><input type="number" v-model.number="state.pondLevels[i]" min="0" /></div>
+              <div class="level-box-mini">
+                <span class="lv-label">Lv</span>
+                <input type="number" v-model.number="state.pondLevels[i]" min="0" />
+              </div>
               <div class="cost-container-mini">
                 <span>{{ formatNumber(upg.cost) }}</span>
                 <img src="/poppy/bluefin-icon.png" class="fish-mini-icon" />
@@ -143,15 +153,25 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
         <main class="upgrade-grid tar-grid">
           <div v-for="(upg, i) in tarUpgradeAnalysis" :key="i" class="upgrade-card" :class="{ 'best': i === bestTarIndex }">
             <div class="row-top">
-              <img :src="upg.icon" class="upg-icon-mini" />
+              <div class="upg-icon-box">
+                <img :src="upg.icon" />
+              </div>
               <span class="upg-title">{{ (upg.name ?? '').toUpperCase() }}</span>
             </div>
             <div class="row-mid-refactor">
-              <span v-if="upg.timeSaved > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
-              <span v-else>--</span>
+              <div class="upg-mid-box">
+                <div class="upg-desc-compact">{{ upg.description }}</div>
+                <div class="time-variation">
+                  <span v-if="upg.timeSaved > 0" class="pos">-{{ formatTime(upg.timeSaved) }}</span>
+                  <span v-else>--</span>
+                </div>
+              </div>
             </div>
             <div class="row-bottom-refactor">
-              <div class="level-box-mini"><input type="number" v-model.number="state.tarLevels[i]" min="0" /></div>
+              <div class="level-box-mini">
+                <span class="lv-label">Lv</span>
+                <input type="number" v-model.number="state.tarLevels[i]" min="0" />
+              </div>
               <div class="cost-container-mini">
                 <span>{{ formatNumber(upg.cost) }}</span>
                 <img src="/poppy/tartar-icon.png" class="fish-mini-icon" />
@@ -275,20 +295,25 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
 .btn-auto:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .upgrade-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border: 2px solid #000; width: 100%; margin: 0 auto; overflow: hidden; background: #000; margin-bottom: 30px; }
-.upgrade-card { background: #4b8397; border: 1px solid #334155; display: flex; flex-direction: column; padding: 10px; position: relative; gap: 8px; }
+.upgrade-card { background: #4b8397; border: 1px solid #334155; display: flex; flex-direction: column; padding: 10px; position: relative; gap: 1px; }
 .upgrade-card.best { border-color: #10b981; background: #064e3b; }
-.target-row { border-left: 5px solid #38bdf8; }
+.target-row { border-left: 5px solid #38bdf8 !important; }
 
 .tar-grid .upgrade-card { background: #4b3a3a; }
 .tar-grid .upgrade-card.best { border-color: #10b981; background: #3f2c06; }
 .row-top { display: flex; align-items: center; gap: 8px; }
+.upg-icon-box { height: 43px; display: flex; align-items: center; justify-content: center; }
 .upg-title { font-size: 1rem; font-weight: 900; color: #fff; text-shadow: 1.5px 1.5px 0 #000; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
-.row-mid-refactor { display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; font-family: monospace; height: 20px; text-shadow: 2px 2px 2px #000; }
+.row-mid-refactor { display: flex; align-items: center; justify-content: center; text-shadow: 2px 2px 2px #000; min-height: 60px; }
+.upg-mid-box { background: rgba(0, 0, 0, 0.25); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 0 2px; }
+.upg-desc-compact { font-size: 0.75rem; color: #fff; font-style: italic; text-align: center; line-height: 1.2; white-space: pre-line; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
+.time-variation { font-size: 1rem; font-weight: 900; font-family: monospace; }
 .pos { color: #4ade80; } .neg { color: #f87171; } .target-label { color: #38bdf8;}
 
-.row-bottom-refactor { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); margin: 2px; }
-.level-box-mini { width: 50px; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+.row-bottom-refactor { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); margin: 0 2px; }
+.level-box-mini { width: 80px; border-right: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; padding-left: 6px; }
+.lv-label { font-size: 0.7rem; font-weight: bold; margin-right: 2px; }
 .level-box-mini input { width: 100%; background: transparent; border: none; font-size: 1rem; text-align: center; color: #fff; outline: none; font-weight: bold; padding: 4px 0; }
 
 .cost-container-mini { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 1.05rem; color: #fff; text-shadow: 1.5px 1.5px 0 #000; font-weight: bold; font-family: monospace; }

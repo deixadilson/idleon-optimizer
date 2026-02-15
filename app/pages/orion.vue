@@ -81,7 +81,7 @@ const buyBest = () => {
               </div>
               <span class="upg-title">{{ upg.name.toUpperCase() }}</span>
             </div>
-            <div class="row-mid-refactor">
+            <div class="row-mid">
               <div class="upg-mid-box">
                 <div class="upg-desc-compact">{{ upg.description }}</div>
                 <div class="time-variation">
@@ -94,8 +94,9 @@ const buyBest = () => {
                 </div>
               </div>
             </div>
-            <div class="row-bottom-refactor">
+            <div class="row-bottom">
               <div class="level-box-mini">
+                <span class="lv-label">Lv</span>
                 <input type="number" v-model.number="state.levels[i]" min="0" />
               </div>
               <div class="cost-container-mini">
@@ -177,7 +178,7 @@ const buyBest = () => {
 
 .grid-section { width: 100%; margin-bottom: 30px; }
 .upgrade-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #000; border: 2px solid #000; border-radius: 4px; overflow: hidden; }
-.upgrade-card { background: #9c5b3d; border: 1px solid #334155; display: flex; flex-direction: column; padding: 10px; position: relative; gap: 5px; }
+.upgrade-card { background: #9c5b3d; border: 1px solid #334155; display: flex; flex-direction: column; padding: 10px; position: relative; gap: 1px; }
 .upgrade-card.best { border-color: #10b981; background: #14532d; }
 .target-row { border-left: 5px solid #38bdf8 !important; }
 
@@ -185,14 +186,15 @@ const buyBest = () => {
 .upg-icon-box { height: 43px; display: flex; align-items: center; justify-content: center; }
 .upg-title { font-size: 0.95rem; font-weight: 900; color: #fff; text-shadow: 1.5px 1.5px 0 #000; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
 
-.row-mid-refactor { display: flex; align-items: center; justify-content: center; text-shadow: 2px 2px 2px #000; min-height: 60px; }
+.row-mid { display: flex; align-items: center; justify-content: center; text-shadow: 2px 2px 2px #000; min-height: 60px; }
 .upg-mid-box { background: rgba(0, 0, 0, 0.25); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); width: 100%; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0 2px; }
 .upg-desc-compact { font-size: 0.7rem; color: #fff; font-style: italic; text-align: center; line-height: 1.2; white-space: pre-line; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
 .time-variation { font-size: 1rem; font-weight: 900; font-family: monospace; }
 .pos { color: #4ade80; } .neg { color: #f87171; } .target-label { color: #38bdf8; }
 
-.row-bottom-refactor { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); margin: 0 2px; }
-.level-box-mini { width: 60px; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+.row-bottom { display: flex; align-items: center; background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); margin: 0 2px; }
+.level-box-mini { width: 80px; border-right: 1px solid rgba(255, 255, 255, 0.1); display: flex; align-items: center; padding-left: 6px; }
+.lv-label { font-size: 0.7rem; font-weight: bold; margin-right: 2px; }
 .level-box-mini input { width: 100%; background: transparent; border: none; font-size: 1rem; text-align: center; color: #fff; outline: none; font-weight: bold; padding: 4px 0; }
 
 .cost-container-mini { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 1.05rem; color: #fff; text-shadow: 1.5px 1.5px 0 #000; font-weight: bold; font-family: monospace; }

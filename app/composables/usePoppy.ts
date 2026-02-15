@@ -29,6 +29,7 @@ const state = reactive<PoppyState>({
 });
 
 export const usePoppy = () => {
+  const { formatNumber, formatTime } = useFormatters();
   const POND_UPGRADE_NAMES = [
     "Tasty Fishbait", "Quick Reeling", "Shiny Lure", "Bonuses from Poppy",
     "Fishy Discount", "Juicy Worm", "Fisheroo Reset", "Fishing Buddy",
@@ -97,6 +98,40 @@ export const usePoppy = () => {
   };
 
 
+
+  const getPondUpgradeDescription = (index: number) => {
+    const lv = state.pondLevels[index] ?? 0;
+    switch (index) {
+      case 0: return `Catch ${formatNumber(lv * 10)} Fish\nevery 30 seconds`;
+      case 1: return `Bluefin fishing speed\nis ${(1 + lv * 0.05).toFixed(2).replace(/\.?0+$/, "")}x Faster`;
+      case 2: return `Catch Shiny Fish\nat a rate of ${formatNumber(lv * 50)}% /hr`;
+      case 3: return "Gain a permanent bonus\nin the real game!";
+      case 4: return `All fish upgrades\nare ${((1 - 1 / (1 + lv * 0.1)) * 100).toFixed(1).replace(/\.?0+$/, "")}% cheaper`;
+      case 5: return `Catch +${formatNumber(lv * 50)} more\nBluefin Fish each time`;
+      case 6: return "Reset all upgrades and\nfish for bonuses!";
+      case 7: return "Recruit a new Bluefin fisherman!";
+      case 8: return `Shiny fishing speed\nis ${(1 + lv * 0.05).toFixed(2).replace(/\.?0+$/, "")}x faster`;
+      case 9: return `Next Fisheroo Reset\ngives +${formatNumber(lv)} pts!`;
+      case 10: return `Catch +${formatNumber(lv * 200)} more\nBluefin Fish each time`;
+      case 11: return "Reset it all.\nGain a permanent Megafish";
+      default: return "";
+    }
+  };
+
+  const getTarUpgradeDescription = (index: number) => {
+    const lv = state.tarLevels[index] ?? 0;
+    switch (index) {
+      case 0: return `Catch +${formatNumber(lv * 100)} more\nBluefin Fish each time`;
+      case 1: return `+${((700 * lv) / (lv + 40)).toFixed(1).replace(/\.?0+$/, "")}% chance\nfor extra shiny catches`;
+      case 2: return `Boosts the amount of\nBluefin Fish caught by +${lv * 8}%`;
+      case 3: return `All fish upgrades\nare ${((1 - 1 / (1 + lv * 0.15)) * 100).toFixed(1).replace(/\.?0+$/, "")}% cheaper`;
+      case 4: return `Catch Tartar Fish ${(1 + lv * 0.05).toFixed(2).replace(/\.?0+$/, "")}x faster`;
+      case 5: return `Next Fisheroo Reset\ngives +${formatNumber(lv)} more pts to spend!`;
+      case 6: return `Multipliers in Shiny Fishing\nshow up ${((30 * lv) / (lv + 40)).toFixed(1).replace(/\.?0+$/, "")}% more often!`;
+      case 7: return `Catch +${formatNumber(lv * 1000)} more Bluefin Fish\nevery 100 seconds`;
+      default: return "";
+    }
+  };
 
   const target = computed(() => {
     const cost6 = getPondUpgradeCost(6, state.pondLevels[6] ?? 0);
@@ -244,6 +279,7 @@ export const usePoppy = () => {
       return {
         name,
         cost: buyCost,
+        description: getPondUpgradeDescription(i),
         timeSaved,
         efficiency,
         icon: `/poppy/pond-upg-${i + 1}.png`
@@ -343,6 +379,7 @@ export const usePoppy = () => {
       return {
         name,
         cost,
+        description: getTarUpgradeDescription(i),
         timeSaved,
         efficiency,
         icon: `/poppy/tar-upg-${i + 1}.png`

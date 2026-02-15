@@ -75,7 +75,7 @@ export const useOrion = () => {
       case 2: return `Boosts feather generation by +${formatNumber(levels[2] * 5)}%`;
       case 3: {
         const red = (levels[3] / (levels[3] + 10)) * 100;
-        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[3] * 2)} f/s)` : "";
+        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[3] * 2)} feathers/s)` : "";
         return `All feather upgrades are ${red.toFixed(1)}% cheaper.${bonus}`;
       }
       case 4: return `Reset almost all Upgrades and Feathers.\nGenerate ${formatNumber(Math.pow(mfLv >= 7 ? 5 : 3, levels[4]))}x Feathers`;
@@ -83,7 +83,7 @@ export const useOrion = () => {
       case 6: return `Rare chance for Shiny Feather,\neach one gives +${levels[6]}% feather generation`;
       case 7: {
         const red = levels[7] * 20;
-        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[7] * 4)} f/s)` : "";
+        const bonus = mfLv >= 5 ? `\n(+${formatNumber(levels[7] * 4)} feathers/s)` : "";
         return `All feather upgrades are ${formatNumber(red)}% cheaper.${bonus}`;
       }
       case 8: return `Reset almost everything.\nGain a permanent Megafeather`;

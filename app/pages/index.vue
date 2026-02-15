@@ -13,7 +13,7 @@ const poppyMegaCost = computed(() => {
 });
 
 const bubbaMegaCost = computed(() => {
-  return getBubbaCost(8, bubbaState.levels[8], bubbaState.mindfulOffsets[8], bubbaState.levels);
+  return getBubbaCost(8, bubbaState.levels[8] || 0, bubbaState.mindfulOffsets[8] || 0, bubbaState.levels);
 });
 
 const bubbaMegaTime = computed(() => {
@@ -79,7 +79,7 @@ const clickers = computed(() => [
   <div class="landing-page">
     <div class="hero-section">
       <h1 class="main-title">IDLEON <span>OPTIMIZER</span></h1>
-      <p class="main-subtitle">A tool for Legends of Idleon players optimize their progress.</p>
+      <p class="main-subtitle">A tool to optimize Legends of Idleon player progress.</p>
     </div>
 
     <div class="clicker-grid">
