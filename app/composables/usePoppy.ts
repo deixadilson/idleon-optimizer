@@ -247,6 +247,7 @@ export const usePoppy = () => {
 
     return POND_UPGRADE_NAMES.map((name, i) => {
       const buyCost = getPondUpgradeCost(i, state.pondLevels[i] ?? 0);
+
       let timeSaved = 0;
       let efficiency = 0;
 
@@ -274,6 +275,11 @@ export const usePoppy = () => {
           timeSaved = Infinity;
         }
         efficiency = (buyCost > 0 && timeSaved > 0) ? timeSaved / buyCost : 0;
+      }
+
+      if (timeSaved <= 0 && buyCost > 0 && rawGen > 0) {
+        timeSaved = -(buyCost / rawGen) * 60;
+        efficiency = 0;
       }
 
       return {
@@ -374,6 +380,11 @@ export const usePoppy = () => {
       } else if (bluefinGen === 0 && i === 0) {
         efficiency = 0.000001;
         timeSaved = Infinity;
+      }
+
+      if (timeSaved <= 0 && cost > 0 && bluefinGen > 0) {
+        timeSaved = -(cost / bluefinGen) * 60;
+        efficiency = 0;
       }
 
       return {

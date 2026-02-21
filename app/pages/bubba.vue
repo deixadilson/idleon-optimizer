@@ -3,8 +3,8 @@ const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromH
 const activeSettingsTab = ref('strategy');
 const { formatNumber, parseNumber, formatTime } = useFormatters();
 
-const meatInputDisplay = ref("");
-const poppyInputDisplay = ref("");
+const meatInputDisplay = ref(0);
+const poppyInputDisplay = ref(0);
 
 const isHelpOpen = ref(false);
 
@@ -49,6 +49,7 @@ const buyMindful = () => {
 };
 
 const toggleEmulsify = (idx: number) => {
+  if ((state.levels[8] ?? 0) < 6) return;
   const list = state.emulsifiedIndices;
   const pos = list.indexOf(idx);
   if (pos === -1) {
@@ -354,8 +355,12 @@ const recommendedUpgrades = computed(() => {
 
       <div class="settings-bar">
         <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
-        <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" max="10" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
+        <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
+        <div class="input-group">
+          <label>Saturnhead:</label>
+          <input type="checkbox" v-model="state.saturnhead" class="saturnhead-checkbox" />
+        </div>
         <div class="btn-group">
             <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 || !upgradeAnalysis[bestUpgradeIndex] }">
               {{ bestUpgradeIndex !== -1 && upgradeAnalysis[bestUpgradeIndex] ? 'BUY: ' + (upgradeAnalysis[bestUpgradeIndex]?.name ?? '').toUpperCase() : 'WAIT' }}
@@ -586,6 +591,9 @@ const recommendedUpgrades = computed(() => {
 .btn-auto { background: #10b981; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; text-shadow: 1px 1px 0 #000; }
 .btn-mindful { background: #fbbf24; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; }
 .btn-wait { background: #444; color: #888; cursor: not-allowed; }
+.saturnhead-checkbox { appearance: none; background: #0f172a; border: 1px solid #334155; border-radius: 4px; width: 33px; height: 33px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+.saturnhead-checkbox:checked { background: #0f172a; }
+.saturnhead-checkbox:checked::after { content: '✓'; color: #38bdf8; font-weight: 900; font-size: 1.2rem; }
 
 .page-title-row { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; padding-top: 10px; }
 .page-title { font-size: 1.4rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }

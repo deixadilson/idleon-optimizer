@@ -14,6 +14,7 @@ const state = reactive({
   activePats: 0,
   patsPerHour: 0,
   poppyFishPower: 0,
+  saturnhead: false,
   megaPushConfig: {
     patsUsed: 0,
     giftsUsed: 0,
@@ -321,7 +322,8 @@ export const useBubba = () => {
     const bargainDisc = 1 - 1 / (1 + 0.01 * (levels[4] ?? 0));
     const costSaverDisc = 1 - 1 / (1 + 0.02 * (levels[18] ?? 0));
     const permaSaleDisc = 1 - 1 / (1 + 0.04 * (levels[26] ?? 0));
-    return (1 - rizz) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc);
+    const saturnheadDisc = state.saturnhead ? 0.5 : 1;
+    return (1 - rizz) * (1 - bargainDisc) * (1 - costSaverDisc) * (1 - permaSaleDisc) * saturnheadDisc;
   };
 
   const getUpgradeCost = (index: number, lv: number, offset: number, prodLevels: BubbaLevels, overrideRizz?: number) => {
