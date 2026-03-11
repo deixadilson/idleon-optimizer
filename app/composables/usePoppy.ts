@@ -218,7 +218,7 @@ export const usePoppy = () => {
     let maxPondDirectEfficiency = 0;
     let avgPondDirectCost = 0;
 
-    if (rawGen > 0 && isFinite(currentTimeToBurden)) {
+    if (rawGen > 0 && isFinite(currentTimeToBurden) && currentTimeToBurden > 0) {
       let totalPondCost = 0;
       let count = 0;
       directPondIndices.forEach(idx => {
@@ -303,7 +303,7 @@ export const usePoppy = () => {
     let maxDirectEfficiency = 0;
     let avgDirectCost = 0;
 
-    if (bluefinGen > 0 && isFinite(currentBluefinTargetTime)) {
+    if (bluefinGen > 0 && isFinite(currentBluefinTargetTime) && currentBluefinTargetTime > 0) {
       let totalEff = 0;
       let totalCost = 0;
       directIndices.forEach(idx => {
@@ -377,7 +377,7 @@ export const usePoppy = () => {
             }
           }
         }
-      } else if (bluefinGen === 0 && i === 0) {
+      } else if (state.tarLevels.every(lv => lv === 0) && i === 0) {
         efficiency = 0.000001;
         timeSaved = Infinity;
       }

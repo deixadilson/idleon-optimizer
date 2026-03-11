@@ -79,7 +79,7 @@ const adjustMindfulOffset = (idx: number, delta: number) => {
   if (next >= 0 && next < currentLevel) state.mindfulOffsets[idx] = next;
 };
 
-const currentH = computed(() => (state.activePats ?? 0) * (state.levels[1] ?? 0) * (charismaBonuses.value.joy ?? 1) * (state.selectedGifts.includes(1) ? 1.5 : 1));
+const currentH = computed(() => (state.activePats ?? 0) * (state.levels[1] ?? 0) * (charismaBonuses.value.joy ?? 1) * (state.selectedGifts.includes(1) ? 1.5 : 1) * (1 + (state.levels[20] ?? 0) / 100));
 const currentHMult = computed(() => getHMultFromHappiness(currentH.value));
 
 const hTiers = [
@@ -115,12 +115,12 @@ const radarPoints = computed(() => {
 });
 
 const charismaChartData = [
-  { id: 'I', name: 'HUSTLE', bonus: (b: any) => `${b.hustle.toFixed(2)}x` },
-  { id: 'II', name: 'RIZZ', bonus: (b: any) => `-${(b.rizz * 100).toFixed(1)}% Cost` },
-  { id: 'III', name: 'JOY', bonus: (b: any) => `${b.joy.toFixed(2)}x Happiness` },
-  { id: 'IV', name: 'COURAGE', bonus: (b: any) => `+${b.courage}% Dice Luk` },
-  { id: 'V', name: 'MINDFUL', bonus: (b: any) => `+${b.mindful.toFixed(0)}% 2x LVs` },
-  { id: 'VI', name: 'SAVVY', bonus: (b: any) => `+${b.savvy}% Coins` },
+  { id: 'I', name: 'HUSTLE', bonus: (b: any) => `${parseFloat(b.hustle.toFixed(2))}x` },
+  { id: 'II', name: 'RIZZ', bonus: (b: any) => `-${parseFloat((b.rizz * 100).toFixed(1))}% Cost` },
+  { id: 'III', name: 'JOY', bonus: (b: any) => `${parseFloat(b.joy.toFixed(2))}x Happiness` },
+  { id: 'IV', name: 'COURAGE', bonus: (b: any) => `+${parseFloat(b.courage.toFixed(2))}% Dice Luk` },
+  { id: 'V', name: 'MINDFUL', bonus: (b: any) => `+${parseFloat(b.mindful.toFixed(0))}% 2x LVs` },
+  { id: 'VI', name: 'SAVVY', bonus: (b: any) => `+${parseFloat(b.savvy.toFixed(2))}% Coins` },
 ];
 
 const cycleDiceValue = (idx: number, direction: number) => {
@@ -355,7 +355,7 @@ const recommendedUpgrades = computed(() => {
 
       <div class="settings-bar">
         <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
-        <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" max="10" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
+        <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
         <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group">
           <label>Saturnhead:</label>
@@ -385,7 +385,7 @@ const recommendedUpgrades = computed(() => {
               <span :class="{ 'mindful-active': (state.mindfulOffsets[i] ?? 0) > 0 }">{{ formatNumber(upg.cost) }}</span>
               <img src="/bubba/meat-icon.png" class="meat-mini-icon" />
             </div>
-            <div class="cost-adj-controls" v-if="!MINDFUL_RESTRICTED.includes(i)">
+            <div class="cost-adj-controls" v-if="!MINDFUL_RESTRICTED.includes(i) || (i === 15 && (state.levels[8] ?? 0) >= 9)">
               <button @click="adjustMindfulOffset(i, -1)" class="cost-chevron">▲</button>
               <button @click="adjustMindfulOffset(i, 1)" class="cost-chevron">▼</button>
             </div>
@@ -624,7 +624,7 @@ const recommendedUpgrades = computed(() => {
 
 .upgrade-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 2px solid #000; width: 100%; margin: 0 auto 30px auto; }
 .upgrade-card { background: #b397b3; border: 1px solid #000; display: flex; flex-direction: column; position: relative; }
-.upgrade-card.best { outline: 4px solid #10b981; z-index: 5; }
+.upgrade-card.best { outline: 4px solid #10b981; z-index: 5; background: #10b981 }
 .row-title, .cost-container, .level-box input, .row-time { color: #fff; text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-weight: bold; }
 .row-title { height: 40px; display: flex; align-items: center; text-align: center; justify-content: center; font-size: 1.1rem; background: rgba(0, 0, 0, 0.1); }
 .row-mid { display: flex; align-items: center; justify-content: space-around; padding: 8px 5px; }

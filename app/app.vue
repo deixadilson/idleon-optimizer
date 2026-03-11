@@ -176,11 +176,12 @@ const importJson = () => {
         const deathNoteSum = Object.values(rawData?.data?.DeathNote || rawData?.DeathNote || {}).reduce((acc: number, x: any) => acc + (x.rank || 0), 0);
         const quantity = deathNoteSum / 125;
         const measurementMulti = quantity < 5 
-           ? 1 + (18 * quantity) / 100 
-           : 1 + (18 * quantity + 8 * (quantity - 5)) / 100;
+          ? 1 + (18 * quantity) / 100 
+          : 1 + (18 * quantity + 8 * (quantity - 5)) / 100;
            
         const totalMeasurement = baseBonus * measurementMulti;
         calcMultiSum += totalMeasurement;
+        // DN_Multi is wrong
         console.log(`Measurement: Lev=${measureLev} (217), Cosmo=${cosmoMulti}x (2), BaseBonus=${baseBonus.toFixed(2)} (13.6), DN_Multi=${measurementMulti.toFixed(2)}x (4.24x), Total=${totalMeasurement.toFixed(2)} (58%)`);
       }
 
@@ -189,16 +190,16 @@ const importJson = () => {
       let studyLev = 0;
       if (Array.isArray(h[26])) studyLev = parseFloat(h[26][13]) || 0;
       if (studyLev) {
-         const sBonus = studyLev * 5;
-         calcMultiSum += sBonus;
-         console.log(`Study: Lev=${studyLev} (20), Bonus=${sBonus} (100%)`);
+        const sBonus = studyLev * 5;
+        calcMultiSum += sBonus;
+        console.log(`Study: Lev=${studyLev} (21), Bonus=${sBonus} (105%)`); // OK!
       }
 
       // 3. Schematic Bonus
       // Index: Holes[13][74] -> If 1, add 10
       if (Array.isArray(h[13]) && h[13][74] && parseFloat(h[13][74]) === 1) {
         calcMultiSum += 10;
-        console.log("Schematic: Active (+10)");
+        console.log("Schematic: Active (+10)"); // OK!
       }
 
       // 4. Monument Bonus
@@ -214,7 +215,7 @@ const importJson = () => {
         const rawTerm = (monLev / (250 + monLev)) * 10 * monVal * cosmoMonMulti;
         const monBonus = 0.1 * Math.ceil(rawTerm);
         calcMultiSum += monBonus;
-        console.log(`Monument: Lev=${monLev} (362), Val=${monVal} , Cosmo=${cosmoMonMulti}x (2), Bonus=${monBonus.toFixed(2)} (86%)`);
+        console.log(`Monument: Lev=${monLev} (362), Val=${monVal} , Cosmo=${cosmoMonMulti}x (2), Bonus=${monBonus.toFixed(2)} (86%)`); // Not OK!
       }
 
       // 5. Jar Bonus
@@ -234,12 +235,11 @@ const importJson = () => {
       if (Array.isArray(arcaneRaw) && arcaneRaw[47]) {
         const tessLev = parseFloat(arcaneRaw[47]);
         calcMultiSum += tessLev * 1; 
-        console.log(`Tesseract: Lev=${tessLev}, Bonus=${tessLev} (0)`);
+        console.log(`Tesseract: Lev=${tessLev}, Bonus=${tessLev} (0)`); // OK!
       }
 
       let finalMultiplier = 1 + (calcMultiSum / 100);
       console.log("Final Multiplier:", finalMultiplier);
-
 
 
       // If we used the heuristic basePoints (with doublers), check if Total makes sense
@@ -255,6 +255,14 @@ const importJson = () => {
       const finalBonus = 1 + discoveredGambitVal / 100;
       //poppyState.gambitBonus = finalBonus;
       //orionState.gambitBonus = finalBonus;
+    }
+    
+    const researchData = rawData.Research || (rawData.data && rawData.data.Research);
+    if (researchData) {
+      const r = typeof researchData === 'string' ? JSON.parse(researchData) : researchData;
+      if (Array.isArray(r) && Array.isArray(r[7])) {
+        bubbaState.saturnhead = (parseFloat(r[7][4]) || 0) >= 6;
+      }
     }
     
     isModalOpen.value = false;
