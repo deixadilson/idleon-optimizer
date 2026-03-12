@@ -79,7 +79,12 @@ const adjustMindfulOffset = (idx: number, delta: number) => {
   if (next >= 0 && next < currentLevel) state.mindfulOffsets[idx] = next;
 };
 
-const currentH = computed(() => (state.activePats ?? 0) * (state.levels[1] ?? 0) * (charismaBonuses.value.joy ?? 1) * (state.selectedGifts.includes(1) ? 1.5 : 1) * (1 + (state.levels[20] ?? 0) / 100));
+const currentH = computed(() => {
+  const joyBonus = (charismaBonuses.value.joy ?? 1) - 1;
+  const giftBonus = state.selectedGifts.includes(1) ? 0.5 : 0;
+  const realLoveBonus = (state.levels[20] ?? 0) / 100;
+  return (state.activePats ?? 0) * (state.levels[1] ?? 0) * (1 + joyBonus + giftBonus + realLoveBonus);
+});
 const currentHMult = computed(() => getHMultFromHappiness(currentH.value));
 
 const hTiers = [

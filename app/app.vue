@@ -39,6 +39,13 @@ const importJson = () => {
         bubbaState.currentMeat = parseFloat(b[0][0]) || 0;
         if (b[0][2] !== undefined) bubbaState.selectedGifts[0] = parseInt(b[0][2]) - 1;
         if (b[0][3] !== undefined) bubbaState.selectedGifts[1] = parseInt(b[0][3]) - 1;
+        
+        bubbaState.coinValues = [
+          parseInt(b[0][9]) || 0,
+          parseInt(b[0][10]) || 0,
+          parseInt(b[0][11]) || 0,
+          parseInt(b[0][12]) || 0
+        ];
       }
       
       if (b[1] && b[2] && Array.isArray(b[1]) && Array.isArray(b[2])) {

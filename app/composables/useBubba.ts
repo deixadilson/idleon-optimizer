@@ -65,12 +65,12 @@ export const useBubba = () => {
     const isMF6 = (state.levels[8] ?? 0) >= 6;
     const getEmulsifyFact = (idx: number) => (isMF6 && state.emulsifiedIndices.includes(idx)) ? 3 : 1;
     return {
-      hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
-      rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
-      joy: 1 + ((lvs[2] ?? 0) * 0.05 * superChartBonus * getEmulsifyFact(2)),
-      courage: (lvs[3] ?? 0) * superChartBonus * getEmulsifyFact(3),
-      mindful: 0.1 * (lvs[4] ?? 0) * superChartBonus * getEmulsifyFact(4),
-      savvy: (lvs[5] ?? 0) * superChartBonus * getEmulsifyFact(5)
+      hustle: (lvs[0] ?? 0) * getEmulsifyFact(0) * 0.1 * superChartBonus + 1,
+      rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * getEmulsifyFact(1) * superChartBonus),
+      joy: 1 + ((lvs[2] ?? 0) * getEmulsifyFact(2) * 0.05 * superChartBonus),
+      courage: (lvs[3] ?? 0) * getEmulsifyFact(3) * superChartBonus,
+      mindful: 0.1 * (lvs[4] ?? 0) * getEmulsifyFact(4) * superChartBonus,
+      savvy: (lvs[5] ?? 0) * getEmulsifyFact(5) * superChartBonus
     };
   });
 
@@ -93,10 +93,10 @@ export const useBubba = () => {
   });
 
   const meatPerPat = computed(() => {
-    const joyMulti = charismaBonuses.value.joy;
-    const giftHappyMult = state.selectedGifts.includes(1) ? 1.5 : 1;
-    const realLoveMult = 1 + (state.levels[20] ?? 0) / 100;
-    const hPerPat = (state.levels[1] ?? 0) * joyMulti * giftHappyMult * realLoveMult;
+    const joyBonus = charismaBonuses.value.joy - 1;
+    const giftBonus = state.selectedGifts.includes(1) ? 0.5 : 0;
+    const realLoveBonus = (state.levels[20] ?? 0) / 100;
+    const hPerPat = (state.levels[1] ?? 0) * (1 + joyBonus + giftBonus + realLoveBonus);
     if (hPerPat <= 0) return 0;
 
     let effectiveSeconds = 0;
@@ -161,9 +161,10 @@ export const useBubba = () => {
 
     // Instant happiness calculation (matching current UI Meter logic)
     const bonuses = charismaBonuses.value;
-    const joyFactor = state.selectedGifts.includes(1) ? 1.5 : 1;
-    const realLoveMult = 1 + (state.levels[20] ?? 0) / 100;
-    const hPerPat = (state.levels[1] ?? 0) * bonuses.joy * joyFactor * realLoveMult;
+    const joyBonus = bonuses.joy - 1;
+    const giftBonus = state.selectedGifts.includes(1) ? 0.5 : 0;
+    const realLoveBonus = (state.levels[20] ?? 0) / 100;
+    const hPerPat = (state.levels[1] ?? 0) * (1 + joyBonus + giftBonus + realLoveBonus);
     const currentH = pats * hPerPat;
 
     const hMult = getHMultFromHappiness(currentH);
@@ -192,7 +193,7 @@ export const useBubba = () => {
 
   const megaPushSimulation = computed(() => {
     const config = state.megaPushConfig;
-    const joyFactor = state.selectedGifts.includes(1) ? 1.5 : 1;
+    const giftBonus = state.selectedGifts.includes(1) ? 0.5 : 0;
     const isMF6 = (state.levels[8] ?? 0) >= 6;
 
     const getSimulatedCharisma = (overrideEmulsified: number[]) => {
@@ -201,9 +202,9 @@ export const useBubba = () => {
       const superChartBonus = 1 + (superChartLv * 0.01);
       const getEmulsifyFact = (idx: number) => (isMF6 && overrideEmulsified.includes(idx)) ? 3 : 1;
       return {
-        hustle: (lvs[0] ?? 0) * 0.1 * superChartBonus * getEmulsifyFact(0) + 1,
-        rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * superChartBonus * getEmulsifyFact(1)),
-        joy: 1 + ((lvs[2] ?? 0) * 0.05 * superChartBonus * getEmulsifyFact(2)),
+        hustle: (lvs[0] ?? 0) * getEmulsifyFact(0) * 0.1 * superChartBonus + 1,
+        rizz: 1 - 1 / (1 + 0.02 * (lvs[1] ?? 0) * getEmulsifyFact(1) * superChartBonus),
+        joy: 1 + ((lvs[2] ?? 0) * getEmulsifyFact(2) * 0.05 * superChartBonus),
       };
     };
 
@@ -217,8 +218,8 @@ export const useBubba = () => {
     }
 
     const charBonusP1 = getSimulatedCharisma(phase1Emulsified);
-    const realLoveMult = 1 + (state.levels[20] ?? 0) / 100;
-    const hPerPat = (state.levels[1] ?? 0) * charBonusP1.joy * joyFactor * realLoveMult;
+    const realLoveBonus = (state.levels[20] ?? 0) / 100;
+    const hPerPat = (state.levels[1] ?? 0) * (1 + (charBonusP1.joy - 1) + giftBonus + realLoveBonus);
 
     const cps = config.clicksPerSecond || 7;
     const moveTimes: Record<string, number> = { 'slow': 1.0, 'medium': 0.5, 'fast': 0.2, 'instant': 0 };
@@ -280,12 +281,18 @@ export const useBubba = () => {
     if (timeSpentSwitching > 0) simulateDecay(timeSpentSwitching);
 
     const charBonusP3 = getSimulatedCharisma(phase2Emulsified);
+
+    // Correct additive percentage pool for simulator
+    const crossoverBonus = (state.levels[24] ?? 0) * 5 * state.poppyFishPower;
+    const percentBonus = ((state.levels[2] ?? 0) * 2) + (8 * (state.levels[11] ?? 0)) + ((state.levels[19] ?? 0) * 25) + crossoverBonus;
+    const percentMult = 1 + (percentBonus / 100);
+
     const baseSlices = ((state.levels[0] ?? 0) * 1) + ((state.levels[7] ?? 0) * 6) + ((state.levels[23] ?? 0) * 50);
-    const D84 = ((state.levels[2] ?? 0) * 2) + (8 * (state.levels[11] ?? 0)) + ((state.levels[19] ?? 0) * 25) + 100;
-    const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (state.levels.reduce((a, b) => a + b, 0) / 100) : 1;
-    const coinsMult = spareCoinsMulti.value * (1 + (state.levels[21] ?? 0) / 100);
+    const totalLv = state.levels.reduce((a, b) => a + b, 0);
+    const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
+    const coinsMult = spareCoinsMulti.value;
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((state.levels[17] ?? 0) / 100)) : 1;
-    const baseMeatRate = baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * (1 + ((state.levels[24] ?? 0) * 0.05 * state.poppyFishPower)) * beegSliceMult;
+    const baseMeatRate = baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * beegSliceMult;
 
     let totalGrossYield = 0;
     let totalGiftCost = 0;
@@ -345,24 +352,31 @@ export const useBubba = () => {
   const getMeatGen = (levels: BubbaLevels, hMult: number) => {
     const baseSlices = ((levels[0] ?? 0) * 1) + ((levels[7] ?? 0) * 6) + ((levels[23] ?? 0) * 50);
     if (baseSlices === 0) return 0;
-    const D84 = ((levels[2] ?? 0) * 2) + (8 * (levels[11] ?? 0)) + ((levels[19] ?? 0) * 25) + 100;
+
+    // Additive percentage pool: Good Meat (2), Great Meat (11), Best Meat (19), Crossover (24)
+    const crossoverBonus = (levels[24] ?? 0) * 5 * state.poppyFishPower;
+    const percentBonus = ((levels[2] ?? 0) * 2) + (8 * (levels[11] ?? 0)) + ((levels[19] ?? 0) * 25) + crossoverBonus;
+    const percentMult = 1 + (percentBonus / 100);
+
     const totalLv = levels.reduce((a, b) => a + b, 0);
     const mf1Mult = (levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
-    const poppyMult = 1 + ((levels[24] ?? 0) * 0.05 * state.poppyFishPower);
-    const coinsMult = spareCoinsMulti.value * (1 + (levels[21] ?? 0) / 100);
+
+    // Spare Coins upgrade (21) level doesn't improve meat directly
+    const coinsMult = spareCoinsMulti.value;
+
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((levels[17] ?? 0) / 100)) : 1;
 
-    return baseSlices * 60 * (D84 / 100) * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * poppyMult * beegSliceMult * hMult;
+    return baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * beegSliceMult * hMult;
   };
 
   const upgradeAnalysis = computed(() => {
-    const joyMulti = charismaBonuses.value.joy;
-    const giftHappyMult = state.selectedGifts.includes(1) ? 1.5 : 1;
+    const joyBonus = charismaBonuses.value.joy - 1;
+    const giftBonus = state.selectedGifts.includes(1) ? 0.5 : 0;
     const realLoveMultBase = 1 + (state.levels[20] ?? 0) / 100;
-    const currentHMult = getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * joyMulti * giftHappyMult * realLoveMultBase);
+    const currentHMult = getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * (1 + joyBonus + giftBonus + (realLoveMultBase - 1)));
 
     const getAvgHMult = (lv: number, rlMult: number = realLoveMultBase) => {
-      const hPerPat = lv * joyMulti * giftHappyMult * rlMult;
+      const hPerPat = lv * (1 + joyBonus + giftBonus + (rlMult - 1));
       if (hPerPat <= 0) return 1;
       const peakBoost = getHMultFromHappiness(hPerPat) - 1;
       const effectiveSeconds = peakBoost * Math.sqrt(hPerPat) * 1.2;
@@ -558,6 +572,6 @@ export const useBubba = () => {
 
   return {
     state, UPGRADE_NAMES,
-    meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * charismaBonuses.value.joy * (state.selectedGifts.includes(1) ? 1.5 : 1) * (1 + (state.levels[20] ?? 0) / 100)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation, getUpgradeCost
+    meatGen: computed(() => getMeatGen(state.levels, getHMultFromHappiness(state.activePats * (state.levels[1] ?? 0) * (1 + (charismaBonuses.value.joy - 1) + (state.selectedGifts.includes(1) ? 0.5 : 0) + (state.levels[20] ?? 0) / 100)))), target: computed(() => ({ name: "Megaflesh", cost: getUpgradeCost(8, state.levels[8] ?? 0, state.mindfulOffsets[8] ?? 0, state.levels), index: 8 })), upgradeAnalysis, bestUpgradeIndex: computed(() => { let bestIdx = -1, maxEff = 0; upgradeAnalysis.value.forEach((upg, i) => { if (i !== 8 && !MINDFUL_RESTRICTED.includes(i) && upg.efficiency > maxEff) { maxEff = upg.efficiency; bestIdx = i; } }); return bestIdx; }), getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation, getUpgradeCost
   };
 };
