@@ -118,13 +118,18 @@ const importJson = () => {
 
     const upgVault = rawData.UpgVault || (rawData.data && rawData.data.UpgVault);
     if (upgVault && Array.isArray(upgVault)) {
-      const lv21 = parseInt(upgVault[21]) || 0;
-      const lv32 = parseInt(upgVault[32]) || 0;
-      orionState.goGoOwl = Math.round(lv21 * 5 * (1 + lv32 * 0.01));
+      const i21 = parseInt(upgVault[21]) || 0;
+      const i32 = parseInt(upgVault[32]) || 0;
+      orionState.goGoOwl = Math.round(i21 * 5 * (1 + i32 * 0.01));
 
-      const lv45 = parseInt(upgVault[45]) || 0;
-      const lv61 = parseInt(upgVault[61]) || 0;
-      poppyState.goGoSecretKangaroo = lv45 * 10 * (1 + lv61 * 0.01);
+      const i45 = parseInt(upgVault[45]) || 0;
+      const i61 = parseInt(upgVault[61]) || 0;
+      poppyState.goGoSecretKangaroo = i45 * 10 * (1 + i61 * 0.01);
+
+      const i65 = parseInt(upgVault[65]) || 0;
+      const i89 = parseInt(upgVault[89]) || 0;
+      const bonusVal = (i65 * 10 * (1 + i89 * 0.01) / 100);
+      bubbaState.goGoBubba = bonusVal > 0 ? 1 + bonusVal : 0;
     }
 
     let discoveredGambitVal = 0;

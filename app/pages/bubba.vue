@@ -362,6 +362,7 @@ const recommendedUpgrades = computed(() => {
         <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
         <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
+        <div class="input-group"><label>Go Go Bubba the Seal:</label><input type="number" v-model.number="state.goGoBubba" class="styled-input" style="width: 90px;" /></div>
         <div class="input-group">
           <label>Saturnhead:</label>
           <input type="checkbox" v-model="state.saturnhead" class="saturnhead-checkbox" />

@@ -14,6 +14,7 @@ const state = reactive({
   activePats: 0,
   patsPerHour: 0,
   poppyFishPower: 0,
+  goGoBubba: 0,
   saturnhead: false,
   megaPushConfig: {
     patsUsed: 0,
@@ -292,7 +293,8 @@ export const useBubba = () => {
     const mf1Mult = (state.levels[8] ?? 0) >= 1 ? 1 + (totalLv / 100) : 1;
     const coinsMult = spareCoinsMulti.value;
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((state.levels[17] ?? 0) / 100)) : 1;
-    const baseMeatRate = baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * beegSliceMult;
+    const goGoMulti = state.goGoBubba || 1;
+    const baseMeatRate = baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charBonusP3.hustle * coinsMult * beegSliceMult * goGoMulti;
 
     let totalGrossYield = 0;
     let totalGiftCost = 0;
@@ -365,8 +367,9 @@ export const useBubba = () => {
     const coinsMult = spareCoinsMulti.value;
 
     const beegSliceMult = state.selectedGifts.includes(0) ? (2 + ((levels[17] ?? 0) / 100)) : 1;
-
-    return baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * beegSliceMult * hMult;
+    const goGoMulti = state.goGoBubba || 1;
+    
+    return baseSlices * 60 * percentMult * mf1Mult * diceMulti.value * smokerMulti.value * charismaBonuses.value.hustle * coinsMult * beegSliceMult * hMult * goGoMulti;
   };
 
   const upgradeAnalysis = computed(() => {
