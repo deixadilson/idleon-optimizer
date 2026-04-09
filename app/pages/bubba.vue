@@ -359,13 +359,17 @@ const recommendedUpgrades = computed(() => {
       </div>
 
       <div class="settings-bar">
-        <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 140px;" /></div>
-        <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" v-model.number="state.patsPerHour" class="styled-input" style="width: 70px;" /></div>
-        <div class="input-group"><label>Poppy Fish Crossover:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 140px;" /></div>
+        <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 100px;" /></div>
+        <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" v-model.number="state.patsPerHour" class="styled-input" style="width: 60px;" /></div>
+        <div class="input-group"><label>Poppy Bluefin:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 100px;" /></div>
         <div class="input-group"><label>Go Go Bubba the Seal:</label><input type="number" v-model.number="state.goGoBubba" class="styled-input" style="width: 90px;" /></div>
         <div class="input-group">
           <label>Saturnhead:</label>
-          <input type="checkbox" v-model="state.saturnhead" class="saturnhead-checkbox" />
+          <input type="checkbox" v-model="state.saturnhead" class="bonus-checkbox" />
+        </div>
+        <div class="input-group">
+          <label>Tier 40 Sushi:</label>
+          <input type="checkbox" v-model="state.sushi" class="bonus-checkbox" />
         </div>
         <div class="btn-group">
             <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 || !upgradeAnalysis[bestUpgradeIndex] }">
@@ -597,9 +601,9 @@ const recommendedUpgrades = computed(() => {
 .btn-auto { background: #10b981; color: white; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; text-shadow: 1px 1px 0 #000; }
 .btn-mindful { background: #fbbf24; color: #000; border: none; padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer; height: 100%; display: flex; align-items: center; font-size: 0.9rem; }
 .btn-wait { background: #444; color: #888; cursor: not-allowed; }
-.saturnhead-checkbox { appearance: none; background: #0f172a; border: 1px solid #334155; border-radius: 4px; width: 33px; height: 33px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
-.saturnhead-checkbox:checked { background: #0f172a; }
-.saturnhead-checkbox:checked::after { content: '✓'; color: #38bdf8; font-weight: 900; font-size: 1.2rem; }
+.bonus-checkbox { appearance: none; background: #0f172a; border: 1px solid #334155; border-radius: 4px; width: 33px; height: 33px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+.bonus-checkbox:checked { background: #0f172a; }
+.bonus-checkbox:checked::after { content: '✓'; color: #38bdf8; font-weight: 900; font-size: 1.2rem; }
 
 .page-title-row { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; padding-top: 10px; }
 .page-title { font-size: 1.4rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
@@ -635,7 +639,7 @@ const recommendedUpgrades = computed(() => {
 .row-title { height: 40px; display: flex; align-items: center; text-align: center; justify-content: center; font-size: 1.1rem; background: rgba(0, 0, 0, 0.1); }
 .row-mid { display: flex; align-items: center; justify-content: space-around; padding: 8px 5px; }
 .level-box { background: rgba(0, 0, 0, 0.4); border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.1); }
-.level-box input { width: 55px; background: transparent; border: none; font-size: 1.3rem; text-align: center; outline: none; }
+.level-box input { width: 60px; background: transparent; border: none; font-size: 1.3rem; text-align: center; outline: none; }
 .row-time { display: flex; align-items: center; justify-content: center; min-height: 25px; padding-bottom: 5px; font-size: 0.9rem; }
 .time-pos { color: #4ade80; }
 .time-neg { color: #f87171; }

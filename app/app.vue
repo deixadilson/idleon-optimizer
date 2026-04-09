@@ -277,6 +277,14 @@ const importJson = () => {
       }
     }
     
+    const sushiData = rawData.Sushi || (rawData.data && rawData.data.Sushi);
+    if (sushiData) {
+      const s = typeof sushiData === 'string' ? JSON.parse(sushiData) : sushiData;
+      if (Array.isArray(s) && Array.isArray(s[5])) {
+        bubbaState.sushi = parseFloat(s[5][39]) === 0;
+      }
+    }
+    
     isModalOpen.value = false;
     jsonInput.value = "";
   } catch (e) {
