@@ -269,6 +269,25 @@ const importJson = () => {
       //orionState.gambitBonus = finalBonus;
     }
     
+    if (holesData) {
+      const h = typeof holesData === 'string' ? JSON.parse(holesData) : holesData;
+      
+      if (Array.isArray(h[31]) && Array.isArray(h[32])) {
+        if (Array.isArray(h[31][0]) && Array.isArray(h[32][0])) {
+          const levelOrion = parseFloat(h[31][0][18]) || 0;
+          const levelMultOrion = parseFloat(h[32][0][18]) || 0;
+          const multOrion = levelMultOrion > 0 ? 1.5 + (levelMultOrion * 0.5) : 1;
+          orionState.fountainBonus = levelOrion > 0 ? Math.round((1 + (levelOrion * 0.05 * multOrion)) * 100) / 100 : 0;
+        }
+        if (Array.isArray(h[31][1]) && Array.isArray(h[32][1])) {
+          const levelPoppy = parseFloat(h[31][1][18]) || 0;
+          const levelMultPoppy = parseFloat(h[32][1][18]) || 0;
+          const multPoppy = levelMultPoppy > 0 ? 1.5 + (levelMultPoppy * 0.5) : 1;
+          poppyState.fountainBonus = levelPoppy > 0 ? Math.round((1 + (levelPoppy * 0.05 * multPoppy)) * 100) / 100 : 0;
+        }
+      }
+    }
+    
     const researchData = rawData.Research || (rawData.data && rawData.data.Research);
     if (researchData) {
       const r = typeof researchData === 'string' ? JSON.parse(researchData) : researchData;
@@ -281,7 +300,7 @@ const importJson = () => {
     if (sushiData) {
       const s = typeof sushiData === 'string' ? JSON.parse(sushiData) : sushiData;
       if (Array.isArray(s) && Array.isArray(s[5])) {
-        bubbaState.sushi = parseFloat(s[5][39]) === 0;
+        bubbaState.sushi = parseFloat(s[5][39]) >= 0;
       }
     }
     

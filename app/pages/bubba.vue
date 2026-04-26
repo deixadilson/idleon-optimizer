@@ -1,4 +1,12 @@
 <script setup lang="ts">
+useSeoMeta({
+  title: 'Idleon Optimizer - Bubba',
+  description: 'Boost your Meat generation with the Bubba Seal clicker tool. Optimize your Arctic Market upgrades and reach the next MegaFlesh efficiently.',
+  ogTitle: 'Idleon Optimizer - Bubba',
+  ogDescription: 'Boost your Meat generation with the Bubba Seal clicker tool. Optimize your Arctic Market upgrades and reach the next MegaFlesh efficiently.',
+  ogImage: '/bubba.png',
+});
+
 const { state, meatGen, target, upgradeAnalysis, bestUpgradeIndex, getHMultFromHappiness, charismaBonuses, MINDFUL_RESTRICTED, diceStats, diceMulti, smokerMulti, spareCoinsMulti, maxPats, meatPerPat, twoHourSkip, openGiftMegaPush, megaPushSimulation, UPGRADE_NAMES } = useBubba();
 const activeSettingsTab = ref('strategy');
 const { formatNumber, parseNumber, formatTime } = useFormatters();
@@ -362,7 +370,7 @@ const recommendedUpgrades = computed(() => {
         <div class="input-group"><label>Current Meat:</label><input type="text" v-model="meatInputDisplay" @input="handleInput" @blur="handleBlur" class="styled-input" style="width: 100px;" /></div>
         <div class="input-group"><label>Pats/Hr:</label><input type="number" step="0.1" min="0" v-model.number="state.patsPerHour" class="styled-input" style="width: 60px;" /></div>
         <div class="input-group"><label>Poppy Bluefin:</label><input type="text" v-model="poppyInputDisplay" @blur="handlePoppyBlur" class="styled-input" style="width: 100px;" /></div>
-        <div class="input-group"><label>Go Go Bubba the Seal:</label><input type="number" v-model.number="state.goGoBubba" class="styled-input" style="width: 90px;" /></div>
+        <div class="input-group"><label>Vault Bonus:</label><input type="number" v-model.number="state.goGoBubba" class="styled-input" style="width: 90px;" /></div>
         <div class="input-group">
           <label>Saturnhead:</label>
           <input type="checkbox" v-model="state.saturnhead" class="bonus-checkbox" />

@@ -1,5 +1,13 @@
 <script setup lang="ts">
-const { state, featherGen, target, timeToTarget, upgradeAnalysis, bestUpgradeIndex } = useOrion();
+const { state, featherGen, target, timeToTarget, upgradeAnalysis, bestUpgradeIndex, getUpgradeCost } = useOrion();
+
+useSeoMeta({
+  title: 'Idleon Optimizer - Orion',
+  description: 'Optimize your Feather generation with the Orion Owl clicker tool. Calculate the best upgrades to reach your next Megafeather faster.',
+  ogTitle: 'Idleon Optimizer - Orion',
+  ogDescription: 'Optimize your Feather generation with the Orion Owl clicker tool. Calculate the best upgrades to reach your next Megafeather faster.',
+  ogImage: '/orion.png',
+})
 const { formatNumber, formatTime, parseNumber } = useFormatters();
 
 const featherInput = ref("");
@@ -60,12 +68,16 @@ const buyBest = () => {
           <input type="number" v-model.number="state.shinyCount" class="styled-input" style="width: 100px;" />
         </div>
         <div class="input-group">
-          <label>Go Go Secret Owl (%):</label>
+          <label>Vault Bonus (%):</label>
           <input type="number" v-model.number="state.goGoOwl" class="styled-input" style="width: 100px;" />
         </div>
         <div class="input-group">
           <label>Gambit Bonus (x):</label>
           <input type="number" step="0.01" v-model.number="state.gambitBonus" class="styled-input" style="width: 100px;" />
+        </div>
+        <div class="input-group">
+          <label>Fountain Bonus (x):</label>
+          <input type="number" step="0.01" v-model.number="state.fountainBonus" class="styled-input" style="width: 100px;" />
         </div>
         <button @click="buyBest" class="btn-auto" :class="{ 'btn-wait': bestUpgradeIndex === -1 || !upgradeAnalysis[bestUpgradeIndex] }">
           {{ bestUpgradeIndex !== -1 && upgradeAnalysis[bestUpgradeIndex] ? 'BUY: ' + upgradeAnalysis[bestUpgradeIndex]!.name.toUpperCase() : 'WAIT FOR RESET' }}

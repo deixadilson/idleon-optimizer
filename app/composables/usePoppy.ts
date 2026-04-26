@@ -9,6 +9,7 @@ interface PoppyState {
   shinyMultipliers: number[];
   goGoSecretKangaroo: number;
   gambitBonus: number;
+  fountainBonus: number;
   targetMode: 'CHEAPEST' | 'RESET' | 'CATCH';
   totalFisherooPoints: number;
   distributionMode: 'Custom' | 'Max bluefin gen' | 'max shiny fish and luck' | 'max cost reduction' | 'max tartar gen' | 'bluefin and tartar' | 'balanced gen';
@@ -22,7 +23,8 @@ const state = reactive<PoppyState>({
   currentTarFish: 0,
   shinyMultipliers: Array(6).fill(1),
   goGoSecretKangaroo: 0,
-  gambitBonus: 1,
+  gambitBonus: 0,
+  fountainBonus: 0,
   targetMode: 'CHEAPEST',
   totalFisherooPoints: 0,
   distributionMode: 'Custom',

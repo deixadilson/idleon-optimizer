@@ -6,6 +6,7 @@ const state = reactive({
   shinyCount: 0,
   goGoOwl: 0,
   gambitBonus: 0,
+  fountainBonus: 0,
 });
 
 export const useOrion = () => {

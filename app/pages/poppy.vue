@@ -4,6 +4,15 @@ const {
   POND_UPGRADE_NAMES, TAR_UPGRADE_NAMES, target, timeToTarget, fisherooBonuses, totalShinyMult,
   pointsToGain
 } = usePoppy();
+
+useSeoMeta({
+  title: 'Idleon Optimizer - Poppy',
+  description: 'Maximize your Bluefin Fish production with the Poppy Kangaroo clicker tool. Find the most efficient upgrades for your Pond and Tar Pit.',
+  ogTitle: 'Idleon Optimizer - Poppy',
+  ogDescription: 'Maximize your Bluefin Fish production with the Poppy Kangaroo clicker tool. Find the most efficient upgrades for your Pond and Tar Pit.',
+  ogImage: '/poppy.png',
+});
+
 const { formatNumber, parseNumber, formatTime, formatMultiplier, formatTartarGen } = useFormatters();
 
 const fishInputDisplay = ref("");
@@ -88,8 +97,9 @@ const fisherooColors = ["#38bdf8", "#fbbf24", "#22c55e", "#f87171", "#aaaaaa"];
       <section class="buy-section pf-buy">
         <div class="settings-bar-inner">
             <div class="input-group"><label>Current Bluefin:</label><input type="text" v-model="fishInputDisplay" @input="handleFishInput" @blur="handleFishBlur" class="styled-input" style="width: 140px;" /></div>
-            <div class="input-group"><label>Go Go Secret Kangaroo Mouse (%):</label><input type="number" v-model.number="state.goGoSecretKangaroo" class="styled-input" style="width: 90px;" /></div>
+            <div class="input-group"><label>Vault Bonus (%):</label><input type="number" v-model.number="state.goGoSecretKangaroo" class="styled-input" style="width: 90px;" /></div>
             <div class="input-group"><label>Gambit Bonus (x):</label><input type="number" step="0.01" v-model.number="state.gambitBonus" class="styled-input" style="width: 80px;" /></div>
+            <div class="input-group"><label>Fountain Bonus (x):</label><input type="number" step="0.01" v-model.number="state.fountainBonus" class="styled-input" style="width: 80px;" /></div>
             <div class="input-group">
                 <label>Target:</label>
                 <select v-model="state.targetMode" class="styled-input styled-select" style="width: 160px;">

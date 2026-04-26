@@ -3,6 +3,15 @@ const { state: orionState, featherGen, getUpgradeCost: getOrionCost } = useOrion
 const { state: poppyState, pondGen, getPondUpgradeCost } = usePoppy();
 const { state: bubbaState, meatGen, target: bubbaTarget, getUpgradeCost: getBubbaCost } = useBubba();
 const { formatTime } = useFormatters();
+  
+useSeoMeta({
+  title: 'Idleon Optimizer',
+  description: 'A tool to optimize Legends of Idleon player progress. Track and calculate the best upgrade paths for Orion Owl, Poppy Kangaroo, and Bubba Seal.',
+  ogTitle: 'Idleon Optimizer',
+  ogDescription: 'A tool to optimize Legends of Idleon player progress. Track and calculate the best upgrade paths for Orion Owl, Poppy Kangaroo, and Bubba Seal.',
+  ogImage: '/bubba.png',
+  twitterCard: 'summary_large_image',
+})
 
 const orionMegaCost = computed(() => {
   return getOrionCost(8, orionState.levels[8], orionState.levels);
