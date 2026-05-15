@@ -47,7 +47,7 @@ export const useOrion = () => {
     return cost;
   };
 
-  const getFeatherGen = (levels: UpgradeLevels, owl: number, gambit: number, shiny: number) => {
+  const getFeatherGen = (levels: UpgradeLevels, owl: number, gambit: number, shiny: number, fountain: number) => {
     const mfLv = levels[8];
     let baseGen = (levels[0] * 1) + (levels[5] * 5);
     if (mfLv >= 5) baseGen += (levels[3] * 2) + (levels[7] * 4);
@@ -60,8 +60,9 @@ export const useOrion = () => {
     const mf1Mult = mfLv >= 1 ? 10 : 1;
     const owlMult = 1 + (owl / 100);
     const gambitMult = gambit > 0 ? gambit : 1;
+    const fountainMult = fountain > 0 ? fountain : 1;
 
-    return owlMult * restartMult * baseGen * featherMult * shinyMult * mf1Mult * gambitMult;
+    return owlMult * restartMult * baseGen * featherMult * shinyMult * mf1Mult * gambitMult * fountainMult;
   };
 
   const getUpgradeDescription = (index: number, levels: UpgradeLevels) => {
@@ -105,7 +106,7 @@ export const useOrion = () => {
       const mCost = getUpgradeCost(8, tempLevels[8], tempLevels);
       const targetIdx = mCost < rCost ? 8 : 4;
       const targetCost = Math.min(rCost, mCost);
-      const currentGen = getFeatherGen(tempLevels, state.goGoOwl, state.gambitBonus, effectiveShiny);
+      const currentGen = getFeatherGen(tempLevels, state.goGoOwl, state.gambitBonus, effectiveShiny, state.fountainBonus);
 
       if (currentGen <= 0) break;
 
@@ -114,7 +115,7 @@ export const useOrion = () => {
         const simLevels = [...tempLevels] as UpgradeLevels;
         (simLevels as any)[idx]++;
 
-        const nextGen = getFeatherGen(simLevels, state.goGoOwl, state.gambitBonus, effectiveShiny);
+        const nextGen = getFeatherGen(simLevels, state.goGoOwl, state.gambitBonus, effectiveShiny, state.fountainBonus);
         const nextTargetCost = getUpgradeCost(targetIdx, tempLevels[targetIdx] as number, simLevels);
 
         const timeSaved = (targetCost / currentGen) - (nextTargetCost / nextGen);
@@ -136,7 +137,7 @@ export const useOrion = () => {
     return totalPathCost;
   };
 
-  const featherGen = computed(() => getFeatherGen(state.levels, state.goGoOwl, state.gambitBonus, state.shinyCount));
+  const featherGen = computed(() => getFeatherGen(state.levels, state.goGoOwl, state.gambitBonus, state.shinyCount, state.fountainBonus));
 
   const target = computed(() => {
     const rCost = getUpgradeCost(4, state.levels[4], state.levels);
@@ -150,7 +151,7 @@ export const useOrion = () => {
     const rawGen = featherGen.value;
     const targetIdx = target.value.index;
     const effectiveShiny = state.shinyCount > 0 ? state.shinyCount : getEstimatedShiny(rawGen);
-    const effectiveGen = getFeatherGen(state.levels, state.goGoOwl, state.gambitBonus, effectiveShiny);
+    const effectiveGen = getFeatherGen(state.levels, state.goGoOwl, state.gambitBonus, effectiveShiny, state.fountainBonus);
     const futureBurdenCost = getFutureEfficientCost(state.levels, effectiveShiny);
     const currentTargetCost = target.value.cost;
     const currentTotalBurden = currentTargetCost + futureBurdenCost;
@@ -161,7 +162,7 @@ export const useOrion = () => {
       const nextLevels = [...state.levels] as UpgradeLevels;
       (nextLevels as any)[i]++;
 
-      const nextGen = getFeatherGen(nextLevels, state.goGoOwl, state.gambitBonus, effectiveShiny);
+      const nextGen = getFeatherGen(nextLevels, state.goGoOwl, state.gambitBonus, effectiveShiny, state.fountainBonus);
       const nextTargetCost = getUpgradeCost(targetIdx, state.levels[targetIdx] as number, nextLevels);
       const nextFutureBurdenCost = getFutureEfficientCost(nextLevels, effectiveShiny);
 
